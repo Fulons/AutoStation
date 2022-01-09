@@ -1,0 +1,95 @@
+alias sorter d0
+alias LEDTop d1
+alias globalMemory d2
+alias dial d3
+alias button d4
+alias silo d5
+
+alias amount r15
+alias hash r14
+alias exporting r13
+
+#INIT
+move exporting 0
+s sorter Mode 2
+
+l r0 dial Setting           #Read Dial
+brnez r0 4                  #If Dial = 0 on startup
+    s silo ClearMemory 1        #Reset silo #TODO: Empty silo?
+    s LEDTop Setting 0          #Reset amount
+    s db Setting 0              #Reset hash (type)
+l r0 LEDTop Setting         #Load Amount
+move amount r0
+l r0 db Setting             #Load Hash
+move hash r0
+brnez hash wait     #If hash == 0
+        ls r0 sorter 0 OccupantHash
+        yield
+    breqz r0 -2         #While sorter.OccupantHash == 0
+    s db Setting r0     #Set hash to display
+    move hash r0        #hash = sorter.OccupantHash
+accept:
+ls r0 sorter 0 Quantity
+add amount amount r0        #Amount += quantity
+s LEDTop Setting amount     #LEDTop = amount
+s sorter Output 1           #Sorter.output(accept)
+wait:
+yield
+jal readGlobalMemory        #readGlobalMemory(r0:num, r1:mode)
+brne r1 GMModeRequestAmount 9           #if mode == GMModeRequestAmount
+    brne r0 hash 5                          #if num == hash
+        move r0 amount                          #num = amount
+        move r1 GMModeAmountResponse            #mode = GMModeAmountResponse
+        jal setGlobalMemory                     #setGlobalMemory(amount, GMModeAmountResponse)
+        jr 2                                #else
+        jal setGlobalMemoryZero                 #setGlobalMemory(0, GMModeNone)
+    j checkInput
+bne r1 GMModeExportedAmount checkInput  #else if mode == GMModeExportedAmount
+    bnez r0 checkInput                      #if num != 0 return
+    brne r0 hash 6                          #if num == hash
+        move exporting 1                        #Exporting = true
+        move r0 0
+        move r1 GMModeExportedAmount
+        jal setGlobalMemory                     #setGlobalMemory(0, GMModeExportedAmount)
+        j checkInput
+    beqz exporting checkInput               #if exporting
+        move exporting 0                        #exporting = 0
+        sub amount amount r0                    #amount -= num
+        jal setGlobalMemoryZero                 #setGlobalMemory(0, GMModeNone)
+        j checkInput
+checkInput:
+ls r0 sorter 0 OccupantHash
+beqz r0 wait                #if sorter.Occupant == null return 
+beq r0 hash accept          #if sorter.Occupant == hash accept()
+decline:                    #decline()
+s sorter Output 0           #Sorter.output(decline)
+j wait
+
+define GMModeNone 0     
+define GMModeRequestAmount 1        #Request Amount of Hash
+define GMModeAmountResponse 2       #Respond Amount
+
+define GMModeRequestWithdraw 3      #Requested Withdraw Hash
+define GMModeWithdrawResponse 4     #Withdraw Response
+define GMModeWithdrawAmmount 5      #Request Withdraw Amount
+define GMModeExportedAmount 6       #Exported Amount
+define GMModeCount 7
+
+#r0:num, r1:mode
+setGlobalMemoryZero:
+move r0 0
+move r1 0
+setGlobalMemory:
+mul r0 r0 GMModeCount
+add r0 r0 r1
+s globalMemory Setting r0
+j ra
+
+#r0:num, r1:mode
+readGlobalMemory:
+l r0 globalMemory Setting
+breqz r0 2  #if num != 0
+    mod r1 r0 GMModeCount
+    div r0 r0 GMModeCount
+floor r0 r0
+j ra

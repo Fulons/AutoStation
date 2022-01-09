@@ -1,0 +1,35 @@
+alias Input d0
+alias LED0 d1
+alias LED1 d2
+alias LED2 d3
+alias LED3 d4
+alias LED4 d5
+
+#ID enum
+define IDMODE 0
+define IDFUEL 1
+define IDINVENTORY 2
+define IDCOLLECTIBLES 3
+define IDRETURNCOST 4
+define IDCOUNT 5
+
+start:
+yield
+l r0 Input Setting
+s db Setting r0
+mod r1 r0 IDCOUNT
+div r2 r0 IDCOUNT
+floor r2 r2
+mul r1 r1 2
+add r1 r1 1
+jr r1
+s LED0 Setting r2
+j start
+s LED1 Setting r2
+j start
+s LED2 Setting r2
+j start
+s LED3 Setting r2
+j start
+s LED4 Setting r2
+j start

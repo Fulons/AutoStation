@@ -1,0 +1,87 @@
+alias storageIC d0
+alias silo d1
+alias globalMemory d2
+alias dial d3
+alias button d4
+alias LEDBottom d5
+
+alias hash r15
+alias amountAvailable r14
+alias requestAmout r13
+alias withdraw r12
+
+move withdraw 0
+
+l hash storageIC Setting
+jal handleOutput
+jal handleAutoOutput
+yield
+jr -4
+
+handleOutput:
+l r0 dial Setting           #load dial
+brle r0 10 3                #if dial > 10
+    sub r0 r0 10            #   dial -= 10
+    mul r0 r0 10            #   dial *= 10
+mul r0 r0 10                #dial *= 10
+s LEDBottom Setting r0      #LEDBottom = dial
+l r1 button Setting         #Load button
+beqz r1 ra                  #If button return
+l r1 globalMemory Setting   #Load MEM
+bnez r1 ra                  #If MEM != 0 return
+s globalMemory Setting r0   #Set memory = dial
+j ra
+
+handleAutoOutput:
+jal readGlobalMemory
+brne r1 GMModeRequestWithdraw 8 #if MEM = GMModeRequestWithdraw
+    move withdraw 0 #Withdraw = 0
+    brne r0 hash 3  #if MEM == hash
+        move withdraw 1 #Withdraw = 1
+        s silo Open 1   #Silo.Open(True)
+    move r0 withdraw    #num = Withdraw
+    mul r1 withdraw GMModeWithdrawResponse  #mode = Withdraw * GMModeWithdrawResponse
+    jal setGlobalMemory #setGlobalMemory(r0:num, r1:mode)
+    j done
+bne r1 GMModeWithdrawAmmount done  #else if MEM = GMModeWithdrawAmmount
+    breqz withdraw done #if withdraw == 1
+        breqz r0 3      #if amount != 0
+            s silo Open 1   #Silo.Open(True)
+            j done
+                        #else
+            s silo Open 0   #Silo.Open(False)
+            move withdraw 0 #withdraw = false
+            move r0 -1
+            move r1 GMModeWithdrawAmmount
+            jal setGlobalMemory #setGlobalMemory(-1, GMModeWithdrawAmmount)
+            j done
+
+done:
+j ra
+
+
+define GMModeNone 0     
+define GMModeRequestAmount 1        #Request Amount of Hash
+define GMModeAmountResponse 2       #Respond Amount
+
+define GMModeRequestWithdraw 3      #Requested Withdraw Hash
+
+define GMModeWithdrawAmmount 5      #Request Withdraw Amount
+define GMModeExportedAmount 6       #Exported Amount, send hash first, then set to 0, then amount
+define GMModeCount 7
+
+#r0:num, r1:mode
+setGlobalMemory:
+mul r0 r0 GMModeCount
+add r0 r0 r1
+s globalMemory Setting r0
+j ra
+
+#r0:num, r1:mode
+readGlobalMemory:
+l r0 globalMemory Setting
+breqz r0 2  #if num != 0
+    mod r1 r0 GMModeCount
+    div r0 r0 GMModeCount
+floor r0 r0
+j ra

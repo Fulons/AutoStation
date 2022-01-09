@@ -1,0 +1,19 @@
+alias dialLED d0
+alias hashGen d1
+alias stacker d2
+alias sorter d3
+alias button d4
+alias dial d5
+
+define logicMemoryHash -851746783
+
+yield
+lb r0 logicMemoryHash Setting Maximum
+breqz r0 -2     #If MEM_MAX != 0
+
+l r0 dial Setting   #load dial
+brle r0 10 3        #if dial > 10
+    sub r0 r0 10    #   dial -= 10
+    mul r0 r0 10    #   dial *= 3
+mul r0 r0 10        #dial *= 10
+s dialLED Setting r0

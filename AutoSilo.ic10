@@ -1,0 +1,124 @@
+alias dial d0               #IN
+alias sorter d1
+#alias LCDsmeltingAmount d2
+alias button d2
+alias manualOverride d3
+alias furnace d4
+alias LCDMode d5
+alias current r15           #Variables
+alias sentAmount r14
+alias furnaceMode r13
+alias emptyTime r12
+define maxEmptyWaitTicks 20 #Constants
+define cobaltOreHash -983091249
+define uraniumOreHash -1516581844
+define coalOreHash 1724793494
+
+define copperOreHash -707307845
+define goldOreHash -1348105509
+define ironOreHash 1758427767	
+define leadOreHash -190236170
+define nickelOreHash 1830218956
+define siliconOreHash 1103972403
+define silverOreHash -916518678
+
+define furnaceMax 500       #Smelting settings
+define stackSize 50
+define waiting 1            #Furnace status
+define smelting 2
+define emptying 3
+move current 0              #Initial setup
+move sentAmount 0
+move furnaceMode waiting
+s sorter Mode 2
+s sorter On 1
+s LCDMode Setting 0
+#s LCDsmeltingAmount Setting -1
+
+override:
+s LCDMode Setting -1
+yield
+l r0 manualOverride Open
+bnez r0 override
+start:
+yield
+s LCDMode Setting furnaceMode   #Set LCD
+l r0 manualOverride Open        #Load manual override
+breqz r0 5                      #If not jump to normal mode
+jr furnaceMode      #Manual override. Get smelting done asap
+j override          #Idle while manual override is active
+j flush             #Smelting - start flushing resources
+j open              #Emptying - wait for resources to be flushed
+jr furnaceMode
+j acceptNew         #Waiting  - New ore?
+j smelt             #Smelting - Accept existing ore? flush?
+j open              #Emptying - Wait for resources to finish smelt and flush
+
+flush:
+move furnaceMode emptying
+move emptyTime 0
+s dial Setting 1
+s button Activate 1
+open:               #Emptying
+yield
+bge emptyTime maxEmptyWaitTicks checkEmpty
+add emptyTime emptyTime 1
+l r0 furnace RecipeHash
+beqz r0 start
+beq r0 copperOreHash start
+beq r0 goldOreHash start
+beq r0 ironOreHash start
+beq r0 leadOreHash start
+beq r0 nickelOreHash start
+beq r0 siliconOreHash start
+beq r0 silverOreHash start
+l r0 furnace Reagents
+blt r0 sentAmount start     #ReagentAmount >= sentAmount
+s furnace Open 1            #Open the furnace
+yield
+l r0 furnace Reagents
+brgtz r0 -3                 #Keep opening until empty
+yield
+s furnace Open 0            #Close the furnace
+reset:
+move current 0              #Reset current
+move sentAmount 0           #Reset sent amount
+move furnaceMode waiting    #Reset furnaceMode
+j start
+
+checkEmpty:                 
+l r0 furnace Reagents       #Called after waiting for maxEmptyWaitTicks for furnace to empty
+ls r1 furnace 0 Quantity
+or r0 r0 r1
+beqz r0 reset
+mul emptyTime emptyTime -1  #Make checks after first double as long
+j start
+
+smelt:
+ls r0 sorter 0 OccupantHash
+beq r0 current accept   #If input is same as current accept it
+l r1 furnace Reagents   #Load reagent amount
+beq r1 sentAmount flush #If reagent amount equal sentAmount open the furnace
+bnez r0 start
+j decline               #Else decline in hope that more of same material comes next
+
+acceptNew:
+ls r0 sorter 0 OccupantHash
+beqz r0 start                       #If nothing waiting in sorter
+beq r0 cobaltOreHash decline        #decline cobalt
+beq r0 uraniumOreHash decline       #decline uranium
+beq r0 coalOreHash decline          #decline coal
+move current r0                     #Set current
+move furnaceMode smelting           #Set mode to smelting
+s db Setting current                #Output hash to console
+accept:                             #Accept input
+s sorter Output 1                   #Sort output accept
+add sentAmount sentAmount stackSize #Increment sent amount
+#s LCDsmeltingAmount Setting sentAmount
+bge sentAmount furnaceMax flush     #Open if max amount of resources has been sent
+j start
+
+decline:
+s sorter Output 0
+yield
+j start

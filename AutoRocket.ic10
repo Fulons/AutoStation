@@ -1,0 +1,114 @@
+alias AutoMod d0
+alias MiningMod d1
+alias FuelTank d2
+alias SiloMod d3
+alias Go d4
+
+alias outID r9
+alias switchStatus r10
+alias automationMode r11
+alias collectiblesCount r12
+alias storageCount r13
+alias fuelCount r14
+alias ReturnCost r15
+
+define LAUNCH 1
+define TRAVELL 2
+define STOP 4
+define RETURN 5
+
+define MINE 1
+
+define OPEN 1
+define CLOSE 0
+define RETURNCOSTMULTIPLIER 2
+
+#ID enum
+define IDMODE 0
+define IDFUEL 1
+define IDINVENTORY 2
+define IDCOLLECTIBLES 3
+define IDRETURNCOST 4
+define IDCOUNT 5
+
+l ReturnCost AutoMod ReturnFuelCost
+mul ReturnCost ReturnCost RETURNCOSTMULTIPLIER
+
+move outID 0
+
+checkMode:
+yield
+l switchStatus Go Open              #Retrieve switch status
+l automationMode AutoMod Mode       #Retrieve automation mode
+seq r0 automationMode 4             #Check if in space(mode 2/4) before checking for ores
+seq r1 automationMode 2
+or r0 r0 r1
+breqz r0 3  
+l collectiblesCount AutoMod CollectableGoods #Retrieve collectibles amount
+jr 2
+move collectiblesCount 0
+l storageCount SiloMod Quantity              #Retrieve stored amount
+l fuelCount AutoMod Fuel                     #Retrieve fuel amount
+floor fuelCount fuelCount
+
+brlt outID IDCOUNT 2       #Check for wrap around
+move outID 0            #Wraparound
+move r0 outID           
+mul r0 r0 3             #3 lines per switch
+add r0 r0 1             #
+jr r0                   #Jump to correct switch
+move r1 IDMODE          #Set Type ID
+move r0 automationMode  #Set Value
+j write
+move r1 IDFUEL
+move r0 fuelCount
+j write
+move r1 IDINVENTORY
+move r0 storageCount
+j write
+move r1 IDCOLLECTIBLES
+move r0 collectiblesCount
+j write
+move r1 IDRETURNCOST
+move r0 ReturnCost
+write:                  #Write value to output
+mul r0 r0 IDCOUNT
+add r0 r0 r1
+s db Setting r0
+add outID outID 1       #Increment outID for nex tick
+
+beq automationMode 0 launch             #Idle on launchpad
+beq automationMode 2 travelling         #Travelling in space
+beq automationMode 4 idle               #Idle in space
+j checkMode
+
+launch:
+s SiloMod Open OPEN             #Set silo to empty
+beqz switchStatus checkMode     #Switch not on
+ble fuelCount 6600 checkMode    #Not enough fuel to launch
+bnez storageCount checkMode     #Not empty storage
+s SiloMod Open CLOSE            #Stop silo emptying
+s AutoMod Activate LAUNCH       #LAUNCH!
+j checkMode
+
+travelling:
+beqz switchStatus return            #Return to launchpad
+ble fuelCount ReturnCost return     #Out of fuel
+beqz collectiblesCount checkMode    #No resources
+s AutoMod Activate STOP             #FOUND ORE STOPPING!
+j checkMode
+
+idle:
+beqz switchStatus return        #Return to launchpad
+ble fuelCount ReturnCost return #Out of fuel
+beqz collectiblesCount travel   #No resources
+s MiningMod Activate MINE       #START MINING
+j checkMode
+
+return:
+s AutoMod Activate RETURN   #RETURN HOME
+j checkMode
+
+travel:
+s AutoMod Activate TRAVELL  #TRAVEL space
+j checkMode
