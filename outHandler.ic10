@@ -1,19 +1,128 @@
-alias dialLED d0
-alias hashGen d1
-alias stacker d2
-alias sorter d3
-alias button d4
-alias dial d5
-
-define logicMemoryHash -851746783
-
+alias stacker d0
+alias preSorter d1
+alias postSorter d2
+define GMModeRequestAmount      999999991        #Request Amount of Hash
+define GMModeRequestWithdraw    999999992      #Requested Withdraw Hash
+define GMModeStopWithdraw       999999993         #
+define GMModeWithdrawnAmount    999999994      #Request Withdraw Amount
+define structureLEDSmall -53151617
+define structureDial 554524804
+define structureHashGen 2077593121
+define structureMemory -851746783
+define structureLogicButton 491845673
+alias currentRequestHash r15
+alias currentRequestAmount r14
+alias dialCount r13
+alias exportedAmount r12
+alias currentRequestMode r10
+alias currentAmount r9
+alias remainingAmount r8
+alias currentStoredAmount r7
+init:
+s preSorter Mode 2
+s postSorter Mode 2
+move currentStoredAmount 0
+move currentRequestHash 0
+move currentRequestMode 0
+move currentRequestAmount 0
+move currentAmount 0
+move remainingAmount 0
+move exportedAmount 0
+sb structureLEDSmall Color 0   #each LedDisplay.setColor(Blue)
+sb structureMemory Setting 0    #GlobalMem.Set(0)
+run:
 yield
-lb r0 logicMemoryHash Setting Maximum
-breqz r0 -2     #If MEM_MAX != 0
-
-l r0 dial Setting   #load dial
+s preSorter Output 0           #Pass through
+lb r0 structureDial Setting Maximum     #load dial
 brle r0 10 3        #if dial > 10
-    sub r0 r0 10    #   dial -= 10
-    mul r0 r0 10    #   dial *= 3
-mul r0 r0 10        #dial *= 10
-s dialLED Setting r0
+    sub r0 r0 10        #dial -= 10
+    mul r0 r0 10        #dial *= 10
+mul dialCount r0 10 #dialCount = dial * 10
+sb structureLEDSmall Setting dialCount  #LED.setNum(dialCount)
+lb r0 structureHashGen Setting Maximum      #r0 = hashGen.Get()
+lb r1 structureLogicButton Setting Maximum  #r1 = button.Get()
+bnez r1 handlePush                          #if button != 0 handlePush()
+beqz currentRequestHash run #if currentRequestHash == 0 return
+lb r0 structureMemory Setting Maximum#Get memory
+lb r1 structureMemory Setting Minimum
+select r0 r0 r0 r1              #r0 = globalMemory
+beq r0 currentRequestHash run   #if MEM == currentRequestHash return
+beq r0 currentRequestMode run   #if MEM == currentRequestMode return
+beqz r0 init                      #if MEM == 0 reset
+brne r1 -1 3                    #if MEM == -1   #Selected response, send mode
+    sb structureMemory Setting currentRequestMode   #MEM = requestMode    
+    j run
+brne currentRequestMode GMModeRequestAmount 8   #currentRequestMode == GMModeRequestAmount
+    blt r0 currentRequestAmount init               #if StorageAmount >= requestAmount
+        s db Setting r0
+        move currentStoredAmount r0
+        sb structureLEDSmall Color 2   #each LedDisplay.setColor(Green)
+        move currentRequestMode GMModeRequestWithdraw   #request withdraw
+        sb structureMemory Setting currentRequestHash   #Select hash
+        j run
+brne currentRequestMode GMModeStopWithdraw 5
+    s db Setting 499
+    move currentRequestMode GMModeWithdrawnAmount
+    sb structureMemory Setting currentRequestHash
+    j run
+brne currentRequestMode GMModeWithdrawnAmount 8
+    sub r1 currentStoredAmount currentRequestAmount
+    s db Setting r1
+    sb structureMemory Setting r1
+    yield
+    lb r0 structureMemory Setting Maximum
+    brne r0 1 -2
+    j init
+bne currentRequestMode GMModeRequestWithdraw run    
+    s preSorter ClearMemory 1
+    move currentAmount 0
+    move remainingAmount currentRequestAmount
+    export:
+        yield
+        s db Setting 1  #Debug.log(1)
+        ls r1 preSorter 0 OccupantHash  #r1 = preSorter.InHash()
+        breqz r1 5                      #if r1 != 0
+            breq r1 currentRequestHash 3    #if r1 != currentHash            
+                s preSorter Output 0           #Decline output
+            jr 2                            #else
+                s preSorter Output 1           #Accept
+        yield
+        s db Setting 2  #Debug.log(2)
+        ls r0 stacker 2 Quantity        #r0 = stacker.getQuantity()
+        brlez r0 6                      #if r0 > 0
+            min r0 r0 remainingAmount       #r0 = min(r0, remainingAmount)
+            s stacker Setting r0            #Stacker.stackSize(r0)
+            s stacker Output 1              #Stacker.exportStack(1)
+            sub remainingAmount remainingAmount r0  #remainingAmount -= r0
+            yield
+        s db Setting remainingAmount    #Debug.log(remainingAmount)
+        s postSorter Output 1           #postSorter.output(accept)
+        yield
+    bgtz remainingAmount export     #while(remainingAmount > 0)
+    yield
+    yield
+    s db Setting 3      #Debug.log(3)
+    done:
+        yield
+        move r0 0                   #r0 = 0
+            s postSorter Output 1           #postSorter.output(accept)
+            add r0 r0 1                     #++r0
+            yield
+        brlt r0 8 -3                #while(r0 < 4)
+        s stacker Setting 500       #stacker.StackSize(500)
+            s stacker Activate 1            #stacker.output()
+            s postSorter Output 0           #postsorter.output(decline)
+            add r0 r0 1                     #++r0
+            yield
+        brlt r0 15 -4                #while(r0 < 15)
+    s db Setting 4
+    move currentRequestMode GMModeStopWithdraw
+    sb structureMemory Setting currentRequestHash
+    yield
+j run
+handlePush:
+move currentRequestHash r0
+move currentRequestAmount dialCount
+move currentRequestMode GMModeRequestAmount
+sb structureMemory Setting currentRequestHash
+j run
