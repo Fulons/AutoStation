@@ -1,0 +1,49 @@
+define AL HASH("AL")
+define EP HASH("EP")
+define PB HASH("PB")
+define TM HASH("TM")
+alias stackSize r15
+alias printer r14
+alias stacker r13
+clr db
+lbn r0 336213101 AL ReferenceId Maximum
+move r1 AL
+jal setMachine
+lbn r0 1307165496 EP ReferenceId Maximum
+move r1 EP
+#jal setMachine
+lbn r0 -1888248335 PB ReferenceId Maximum
+move r1 PB
+#jal setMachine
+lbn r0 -465741100 TM ReferenceId Maximum
+move r1 TM
+#jal setMachine
+move stackSize sp
+
+main:
+brnez sp 2
+move sp stackSize
+yield
+pop stacker
+pop printer
+get r0 printer 63
+srl r0 r0 8
+get r0 printer r0
+srl r0 r0 8
+and r0 r0 $FF
+breqz r0 3
+s stacker Setting 500
+j main
+ls r0 stacker 2 Quantity
+beqz r0 main
+s stacker Activate 1
+yield
+s stacker Setting 10
+s db Setting r0
+j main
+
+setMachine:
+push r0 #Printer
+lbn r0 1585641623 r1 ReferenceId Maximum #Stacker
+push r0
+j ra

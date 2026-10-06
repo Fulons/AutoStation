@@ -1,0 +1,8 @@
+alias transmitter d0
+
+
+sll r0 2 8
+sll r1 1758427767 16
+or r0 r0 r1
+
+s transmitter Setting r0

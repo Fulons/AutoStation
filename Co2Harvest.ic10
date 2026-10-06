@@ -1,0 +1,28 @@
+define minTemperature 273 #~ 0C
+define maxOutputPressure 20000 #20 mpa
+define maxInputPressure 20000 #20mpa
+define POWEREDVENTL -785498334
+define GASSENSOR -1252983604
+
+sb POWEREDVENTL Mode 1 #inward
+
+loop:
+yield
+#Input
+lb r0 GASSENSOR Temperature Minimum
+sgt r0 r0 minTemperature #Check temperature
+l r1 db PressureInput
+slt r1 r1 maxInputPressure
+and r0 r0 r1 #And input pressure
+sb POWEREDVENTL On r0 #Turn on/off vent
+#Filtrate
+l r0 db PressureInput
+sgt r0 r0 1000 #Min input pressure for filtration
+l r1 db PressureOutput
+slt r1 r1 maxOutputPressure #Max pressure in storage
+and r0 r0 r1
+l r1 db RatioCarbonDioxideInput
+sgtz r1 r1 #Has CO2
+and r0 r0 r1
+s db Mode r0
+j loop

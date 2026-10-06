@@ -1,0 +1,78 @@
+#alias helmet d0
+#alias jetpack d1
+alias suit d0
+alias stopWatch d1
+alias weather d2
+define OCCUPANCY 322782515
+
+alias wasIn r15
+alias isIn r14
+alias raStore r13
+move wasIn 0
+jal justWentOut
+
+loop:
+yield
+lb isIn OCCUPANCY Quantity Sum
+sgtz isIn isIn
+seqz r0 wasIn
+and r0 r0 isIn #Just came in
+bnezal r0 justCameIn
+seqz r0 isIn
+and r0 r0 wasIn #Just went out
+bnezal r0 justWentOut
+jal handleTakeOffSuit
+jal handleWeather
+move wasIn isIn
+j loop
+
+handleWeather:
+l r0 weather NextWeatherEventTime
+sb -815193061 Setting r0 #Set timers
+sgtz r1 r0
+sb -1535893860 On r1 #Set warning lights
+blez r0 ra
+mul r0 r0 2 #Double so whole numbers are .5 second or a tick
+round r0 r0
+mod r1 r0 120
+brnez r1 3 #on the minute
+s suit SoundAlert 18 #Storm incomming
+j ra
+bne r1 4 ra #2 seconds before the minute
+div r0 r0 120 #In minutes
+bgt r0 5 ra #More than 5 minutes, return
+round r0 r0
+brgtz r0 3 #0
+s suit SoundAlert 15 #Danger
+j ra
+add r0 r0 28
+s suit SoundAlert r0
+j ra
+
+justCameIn:
+sb 1514476632 On 1
+s suit SoundAlert 25
+s stopWatch On 1
+s stopWatch Activate 1
+j ra
+justWentOut:
+sb 1514476632 On 0
+s stopWatch On 0
+s suit SoundAlert 0
+j ra
+
+handleTakeOffSuit:
+l r0 suit EntityState
+bnez r0 ra
+beqz isIn ra
+l r0 stopWatch Time
+blt r0 10 ra #Wait 20 seconds
+round r0 r0
+mod r0 r0 10
+brgt r0 3 3 #On for 3 seconds in a 10 second loop
+#s suit SoundAlert 19
+j ra
+l r0 suit SoundAlert
+bne r0 19 ra #Only cancel take off suit alarm
+s suit SoundAlert 0
+j ra

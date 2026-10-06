@@ -1,0 +1,35 @@
+alias desiredRatio r15
+alias H2Analyzer d0
+alias O2Analyzer d1
+alias TankFuel d2
+alias FuelMixer d3
+
+define maxFuelPressure 30000 #30mpa
+
+define partsGas1 2 #Volatiles
+define partsGas2 1 #Pxygen
+
+add desiredRatio partsGas1 partsGas2
+div desiredRatio partsGas1 desiredRatio
+
+main:
+yield
+sub r0 1 desiredRatio
+div r0 desiredRatio r0 # a
+l r1 H2Analyzer Temperature
+l r2 O2Analyzer Temperature
+div r1 r1 r2
+mul r0 r0 r1 # b
+add r1 r0 1
+div r0 r0 r1 # s
+mul r0 r0 100 #actual ratio
+s FuelMixer Setting r0
+l r0 TankFuel Pressure
+l r1 H2Analyzer Pressure
+l r2 O2Analyzer Pressure
+add r1 r1 r2
+sge r1 r1 r0
+slt r0 r0 maxFuelPressure
+and r0 r0 r1
+s FuelMixer On r0
+j main

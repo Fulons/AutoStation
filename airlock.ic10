@@ -1,0 +1,83 @@
+alias intVent r15
+alias extVent r14
+alias isSide r13
+alias gasSensor r12
+alias occupancySensor r11
+alias lastOccupancy r10
+
+define POWEREDVENTL -785498334
+define GLASSDOOR -324331872
+define TRIGGERLARGE -2008706143
+
+define intDoorName HASH("intDoor")
+define extDoorName HASH("extDoor")
+define intTriggerName HASH("triggerInt")
+define extTriggerName HASH("triggerExt")
+
+lbn intVent POWEREDVENTL HASH("intVent") ReferenceId Maximum
+lbn extVent POWEREDVENTL HASH("extVent") ReferenceId Maximum
+lb gasSensor -1252983604 ReferenceId Maximum
+lb occupancySensor 322782515 ReferenceId Maximum
+
+s intVent Mode 1
+s extVent Mode 1
+
+define ISIN 0
+define ISOUT 1
+
+move lastOccupancy 0
+move isSide ISIN
+sb GLASSDOOR Mode 0
+sb GLASSDOOR Lock 1
+sbn GLASSDOOR extDoorName Open 0
+sbn GLASSDOOR intDoorName Open 1
+
+
+main:
+yield
+lbn r0 TRIGGERLARGE intTriggerName Setting Maximum
+seq r1 isSide ISOUT
+and r0 r0 r1
+bnez r0 goIn
+lbn r0 TRIGGERLARGE extTriggerName Setting Maximum
+seq r1 isSide ISIN
+and r0 r0 r1
+bnez r0 goOut
+l r0 occupancySensor Quantity
+sgtz r0 r0
+seqz r1 lastOccupancy
+move lastOccupancy r0
+and r0 r0 r1
+bnez r0 flip
+j main
+
+flip:
+yield
+beq isSide ISIN goOut
+j goIn
+j main
+
+goOut:
+sb GLASSDOOR Open 0
+s intVent On 1
+jal waitVaccum
+sbn GLASSDOOR extDoorName Open 1
+move isSide ISOUT
+s intVent On 0
+j main
+
+goIn:
+sb GLASSDOOR Open 0
+s extVent On 1
+jal waitVaccum
+sbn GLASSDOOR intDoorName Open 1
+move isSide ISIN
+s extVent On 0
+j main
+
+waitVaccum:
+yield
+l r0 gasSensor Pressure
+bnez r0 waitVaccum
+yield
+j ra

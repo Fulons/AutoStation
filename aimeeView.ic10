@@ -1,0 +1,15 @@
+alias aimee d0
+
+sbn -815193061 HASH("LEDPower") Mode 2
+
+setLED:
+yield
+ls r0 aimee 0 Charge
+sbn -815193061 HASH("LEDPower") Setting r0
+l r0 aimee PositionX
+sbn -815193061 HASH("LEDX") Setting r0
+l r0 aimee PositionZ
+sbn -815193061 HASH("LEDZ") Setting r0
+l r0 aimee Mode
+sbn -815193061 HASH("LEDMode") Setting r0
+j setLED

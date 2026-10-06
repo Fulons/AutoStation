@@ -1,0 +1,107 @@
+define maxPrinterQueueSize 32
+define machineOffset 5
+alias stackSize r15
+alias printer r14
+alias stacker r13
+alias button r12
+alias lastButton r11
+alias printerQueueSP r10
+clr db
+move r1 HASH("AL") #Autolathe
+lbn r0 336213101 r1 ReferenceId Maximum
+jal setMachine
+move r1 HASH("EP") #Electronics printer
+lbn r0 1307165496 r1 ReferenceId Maximum
+jal setMachine
+move r1 HASH("PB") #Pipe bender
+lbn r0 -1888248335 r1 ReferenceId Maximum
+jal setMachine
+move r1 HASH("TM") #Tools printer
+lbn r0 -465741100 r1 ReferenceId Maximum
+jal setMachine
+move stackSize sp
+yield
+loop:
+brnez sp 3
+move sp stackSize
+yield
+sub sp sp maxPrinterQueueSize
+pop printerQueueSP
+pop lastButton
+pop button
+pop stacker
+pop printer
+l r0 printer Lock
+s stacker Lock r0
+bnez r0 loop #Print in order so loop
+l r0 printer On
+s stacker On r0 #Turn off/on stacker if machine is off/on
+jal handleButton
+and r0 r1 r0 #Button down and printer on
+bnez r0 pushQueue #Push into queue if button down and printer is on
+bnez r1 printQueue #Print queue if machine is off and button is pressed
+j loop
+
+printQueue:
+s printer On 1 #Turn On
+s stacker On 1
+clrd printer
+add r2 sp machineOffset
+bgt r2 printerQueueSP loop #nothing in queue
+move r1 0 #Printer stack address
+put printer r1 262 #Lock printer
+add r1 r1 1
+printQueueLoop:
+get r0 db r2
+put printer r1 3 #WaitUntilNextValid
+add r1 r1 1
+put printer r1 r0 #Order
+add r1 r1 1
+add r2 r2 1
+ble r2 printerQueueSP printQueueLoop #Next
+put printer r1 6 #Unlock printer
+add r1 r1 1
+add r0 sp 4 #Finds address of queue pointer
+poke r0 r0 #Save the new queue pointer
+j loop
+
+pushQueue:
+move r2 printerQueueSP
+add r2 r2 1 #Set to one after end of queue
+l r0 stacker Setting
+sll r0 r0 8 #Quantity
+l r1 printer RecipeHash
+sll r1 r1 16 #Hash
+or r0 r0 r1
+or r0 r0 2 #OpCode
+poke r2 r0 #ExecuteRecipe pushed to queue
+add r0 sp 4 #Finds address of queue pointer
+poke r0 r2 #Save the new queue pointer
+j loop
+
+setMachine:
+push r0 #Printer
+s r0 Lock 0
+clrd r0
+lbn r0 1585641623 r1 ReferenceId Maximum #Stacker
+s r0 Lock 0
+s r0 On 1
+push r0
+lbn r0 491845673 r1 ReferenceId Maximum #Button
+s r0 Lock 0
+push r0
+push 0 #LastButton state
+push sp #PrinterQueueSP
+add sp sp maxPrinterQueueSize
+j ra
+
+handleButton:
+l r1 button Activate
+add r2 sp 3 #Finds address of lastButton pointer
+poke r2 r1 #Save the current button state
+beqz r1 ra #Not down, return
+seqz r2 lastButton #was up
+and r2 r1 r2 #and button is down
+bnez r2 ra #Return as new press
+move r1 0 #Second frame of same press, so return false
+j ra

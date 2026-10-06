@@ -1,0 +1,176 @@
+
+alias Unloader0 d1
+alias Unloader1 d2
+alias Sorter0 d3
+alias Sorter1 d4
+alias Sorter2 d5
+
+s Unloader0 Mode 1 #Logic
+s Unloader1 Mode 1 #Logic
+j sortering
+
+#r0, r1
+checkUnloader:
+move r2 0
+seq r3 r0 SlotClass.Belt
+or r2 r3 r2
+seq r3 r1 1470787934#Mining belt MK II
+or r2 r3 r2
+seq r3 r1 -676435305#Mining belt
+or r2 r3 r2
+seq r3 r1 -1650383245#Mining backpack
+or r2 r3 r2
+seq r3 r1 374891127#Hardsuit backpack
+or r2 r3 r2
+seq r3 r1 900366130#Hard Mining backpack
+or r2 r3 r2
+j ra
+main:
+yield
+unloader0:
+l r0 Unloader0 Output
+bne r0 -1 unloader1
+ls r0 Unloader0 0 Occupied
+beqz r0 unloader1
+ls r0 Unloader0 0 Class
+ls r1 Unloader0 0 OccupantHash
+jal checkUnloader
+s Unloader0 Output r2
+unloader1:
+l r0 Unloader1 Output
+bne r0 -1 main
+ls r0 Unloader1 0 Occupied
+beqz r0 main
+ls r0 Unloader1 0 Class
+ls r1 Unloader1 0 OccupantHash
+jal checkUnloader
+s Unloader1 Output r2
+
+sortering:
+s Sorter0 Mode 0
+clr Sorter0
+move r0 0
+move r1 0
+sll r0 SortingClass.Ores 16
+sll r1 NotEquals 8
+or r0 r0 r1
+or r0 r0 SorterInstruction.FilterSortingClassCompare
+put Sorter0 0 r0
+move r0 0
+move r1 0
+sll r0 SortingClass.Ices 16
+sll r1 NotEquals 8
+or r0 r0 r1
+or r0 r0 SorterInstruction.FilterSortingClassCompare
+put Sorter0 1 r0
+
+s Sorter1 Mode 1
+clr Sorter1
+move r0 0
+move r1 0
+sll r0 SortingClass.Ices 16
+sll r1 Equals 8
+or r0 r0 r1
+or r0 r0 SorterInstruction.FilterSortingClassCompare
+put Sorter1 0 r0
+
+s Sorter2 Mode 1
+clr Sorter2
+move r0 0
+move r1 0
+sll r0 SortingClass.Ores 16
+sll r1 Equals 8
+or r0 r0 r1
+or r0 r0 SorterInstruction.FilterSortingClassCompare
+put Sorter2 0 r0
+
+j main
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+alias Sorter0 d0
+alias Sorter1 d1
+alias FiltO d2
+alias FiltN d3
+define VolatilesHash 1253102035
+define OxiteHash -1805394113
+define NitriceHash -1499471529
+
+sb 435685051 On 1
+jal sorterSetup
+main:
+yield
+jal crushing
+jal filtration
+j main
+
+sorterSetup:
+s Sorter0 On 1
+s Sorter0 Mode 0
+clr Sorter0
+move r0 0
+sll r0 OxiteHash 8
+or r0 r0 SorterInstruction.FilterPrefabHashEquals
+put Sorter0 0 r0
+s Sorter1 On 1
+s Sorter1 Mode 0
+clr Sorter1
+move r0 0
+sll r0 NitriceHash 8
+or r0 r0 SorterInstruction.FilterPrefabHashEquals
+put Sorter1 0 r0
+j ra
+
+crushing:
+lbn r0 435685051 HASH("AnalyzerH2") Pressure 3
+slt r0 r0 40000
+sbn 443849486 HASH("CrusherVol") On r0
+
+lbn r0 435685051 HASH("AnalyzerO2") Pressure 3
+lbn r1 435685051 HASH("AnalyzerN") Pressure 3
+slt r0 r0 40000
+slt r1 r1 40000
+and r0 r0 r1
+l r1 FiltO PressureInput
+slt r1 r1 20000
+and r0 r0 r1
+sbn 443849486 HASH("CrusherOxy") On r0
+
+lbn r0 435685051 HASH("AnalyzerNOS") Pressure 3
+slt r0 r0 40000
+l r1 FiltN PressureInput
+slt r1 r1 20000
+and r0 r0 r1
+sbn 443849486 HASH("CrusherNitro") On r0
+j ra
+
+filtration:
+l r0 FiltO PressureInput
+sgtz r0 r0
+s FiltO On r0
+l r0 FiltN PressureInput
+sgtz r0 r0
+s FiltN On r0
+j ra

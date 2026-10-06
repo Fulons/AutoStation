@@ -1,0 +1,64 @@
+###AIRCON
+l r0 db RatioOxygenOutput
+bnez r0 oxygen
+l r0 db RatioCarbonDioxideOutput
+bnez r0 co2
+l r0 db RatioNitrogenOutput
+bnez r0 nitrogen
+l r0 db RatioPollutantOutput
+bnez r0 pollutant
+l r0 db RatioVolatilesOutput
+bnez r0 volatiles
+l r0 db RatioSteamOutput
+bnez r0 water
+l r0 db RatioNitrousOxideOutput
+bnez r0 nos
+oxygen:
+l r0 db RatioOxygenInput
+snez r0 r0
+s db Mode r0
+yield
+yield
+j oxygen
+co2:
+l r0 db RatioCarbonDioxideInput
+snez r0 r0
+s db Mode r0
+yield
+yield
+j co2
+nitrogen:
+l r0 db RatioNitrogenInput
+snez r0 r0
+s db Mode r0
+yield
+yield
+j nitrogen
+pollutant:
+l r0 db RatioPollutantInput
+snez r0 r0
+s db Mode r0
+yield
+yield
+j pollutant
+volatiles:
+l r0 db RatioVolatilesInput
+snez r0 r0
+s db Mode r0
+yield
+yield
+j volatiles
+water:
+l r0 db RatioSteamOutput
+snez r0 r0
+s db Mode r0
+yield
+yield
+j water
+nos:
+l r0 db RatioNitrousOxideInput
+snez r0 r0
+s db Mode r0
+yield
+yield
+j nos

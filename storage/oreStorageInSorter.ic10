@@ -1,0 +1,117 @@
+alias sorterIn r15
+alias maxStack r14
+alias raStore r13
+alias sorter r12
+alias stacker r11
+alias silo r10
+alias memory r9
+alias led r8
+alias errorID r7
+alias inHash r6
+lbn sorterIn -1009150565 HASH("SorterIn") ReferenceId Maximum #Sorter
+s sorterIn Mode 2 #Logic mode
+move r1 HASH("0")
+jal loadStorage
+move r1 HASH("1")
+jal loadStorage
+move r1 HASH("2")
+jal loadStorage
+move r1 HASH("3")
+jal loadStorage
+move r1 HASH("4")
+jal loadStorage
+move r1 HASH("5")
+jal loadStorage
+move r1 HASH("6")
+jal loadStorage
+move r1 HASH("7")
+jal loadStorage
+move r1 HASH("8")
+jal loadStorage
+move r1 HASH("9")
+jal loadStorage
+move r1 HASH("10")
+jal loadStorage
+move r1 HASH("11")
+jal loadStorage
+move r1 HASH("12")
+jal loadStorage
+move r1 HASH("13")
+jal loadStorage
+move r1 HASH("14")
+jal loadStorage
+move maxStack sp
+s db Setting maxStack
+sb 873418029 On 1
+sb -2020231820 On 1
+sb 1155865682 On 1
+sb -815193061 On 1
+main:
+yield
+jal count
+move sp maxStack
+ls r0 sorterIn 0 Occupied
+beqz r0 main
+ls inHash sorterIn 0 PrefabHash
+jal hasHash
+move sp maxStack
+beqz r0 allocate
+accept:
+s sorterIn Output 0
+j main
+reject:
+s sorterIn Output 1
+j main
+count:
+move raStore ra
+jal loadNext
+l r0 silo Quantity
+ls r1 stacker 2 Quantity
+mul r0 r0 50
+add r0 r0 r1
+s led Setting r0
+brgtz sp -6
+j raStore
+allocate:
+beqz sp error
+jal loadNext
+l r0 memory Setting
+bnez r0 allocate
+s memory Setting inHash
+s led Setting 0
+sll r0 inHash 8
+or r0 r0 1
+put sorter 0 r0 #Filter prefab hash
+j accept
+hasHash:
+move raStore ra
+jal loadNext
+l r0 memory Setting
+seq r0 r0 inHash
+beqz sp raStore #Not found, or found on last
+breqz r0 -4 #Not this, try next
+j raStore #Found
+loadNext:
+pop led
+pop memory
+pop silo
+pop stacker
+pop sorter
+j ra
+loadStorage:
+lbn r0 873418029 r1 ReferenceId Maximum #Logic sorter
+push r0
+lbn r0 -2020231820 r1 ReferenceId Maximum #Stacker
+s r0 Setting 50
+push r0
+lbn r0 1155865682 r1 ReferenceId Maximum #Silo
+push r0
+lbn r0 -851746783 r1 ReferenceId Maximum #Memory
+push r0
+lbn r0 -815193061 r1 ReferenceId Maximum #Led
+push r0
+j ra
+error:
+s db Setting -1
+sleep 60
+j error

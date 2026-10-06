@@ -1,0 +1,63 @@
+define tickCount 600
+alias sorter d0
+alias sorter2 d1
+alias currentHash r15
+alias flushing r14
+move flushing 0
+move currentHash 0
+
+s sorter On 1
+s sorter Mode 0 # All
+sb -815193061 On 1#Led small
+sb -2020231820 On 1
+sb -2020231820 Setting 50
+
+waitForNew:
+yield
+jal checkCentrifuges
+ls r0 sorter 0 PrefabHash
+beqz r0 waitForNew
+beq r0 currentHash waitForNew
+ls r1 sorter 0 Quantity
+beq r1 50 waitForNew
+setHash:
+move currentHash r0
+s db Setting r0
+clr sorter
+sll r0 r0 8
+or r0 r0 SorterInstruction.FilterPrefabHashEquals
+put sorter 0 r0
+move r0 50
+sll r0 r0 8
+or r0 r0 NotEquals
+sll r0 r0 8
+or r0 r0 SorterInstruction.FilterQuantityCompare
+put sorter 8 r0
+move r5 tickCount #Number of ticks before moving to new resource
+waitLoop:
+yield
+jal checkCentrifuges
+sub r5 r5 1
+sb -815193061 Setting r5
+bgtz r5 waitLoop
+clr sorter
+move r0 969522478 #Kit (sorter)
+sll r0 r0 8
+or r0 r0 SorterInstruction.FilterPrefabHashEquals
+put sorter 0 r0
+j waitForNew
+
+
+checkCentrifuges:
+bnez flushing flushCentrifuges
+lb r0 690945935 Error 3
+beqz r0 ra
+move flushing 1
+flushCentrifuges:
+lb r0 690945935 Reagents 3
+brlt r0 5 3
+sb 690945935 Open 1
+j ra
+sb 690945935 Open 0
+move flushing 0
+j ra

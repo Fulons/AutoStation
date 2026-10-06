@@ -1,0 +1,98 @@
+alias ingredient0 r10
+alias ingredient1 r11
+alias ingredient2 r12
+alias ingredient3 r13
+
+alias vendor r15
+alias multiplier r14
+
+alias found0 r6
+alias found1 r7
+alias found2 r8
+alias found3 r9
+
+define FLIPFLOP 163728359
+
+lbn vendor 19591354 HASH("VendorFurnace") ReferenceId Maximum
+s db Setting 0
+
+main:
+yield
+lbn r0 1220484876 HASH("vendLever") Open Maximum
+lbn multiplier 554524804 HASH("multiplierDial") Setting Maximum
+beqz r0 main
+beqz multiplier main
+lbn ingredient0 -851746783 HASH("ingredient0") Setting Maximum #1
+lbn ingredient1 -851746783 HASH("ingredient1") Setting Maximum #2
+lbn ingredient2 -851746783 HASH("ingredient2") Setting Maximum #4
+lbn ingredient3 -851746783 HASH("ingredient3") Setting Maximum #8
+seqz found0 ingredient0
+seqz found1 ingredient1
+seqz found2 ingredient2
+seqz found3 ingredient3
+mul found0 found0 multiplier
+mul found1 found1 multiplier
+mul found2 found2 multiplier
+mul found3 found3 multiplier
+move r2 1 #2-11
+
+checkLoop:
+add r2 r2 1
+bgt r2 11 checked
+ls r0 vendor r2 PrefabHash#Load slot
+
+bge found0 multiplier check1 #If already found jump to next
+seq r1 r0 ingredient0 # Check hash
+add found0 found0 r1 # Add to count
+bnez r1 checkLoop # If found reserve by jumping to next slot
+check1:
+bge found1 multiplier check2 #If already found jump to next
+seq r1 r0 ingredient1 # Check hash
+add found1 found1 r1 # Add to count
+bnez r1 checkLoop # If found reserve by jumping to next slot
+check2:
+bge found2 multiplier check3 #If already found jump to next
+seq r1 r0 ingredient2 # Check hash
+add found2 found2 r1 # Add to count
+bnez r1 checkLoop # If found reserve by jumping to next slot
+check3:
+bge found3 multiplier checkLoop #If already found jump to next slot
+seq r1 r0 ingredient3 # Check hash
+add found3 found3 r1 # Add to count
+j checkLoop # next slot
+checked:
+seq r0 found0 multiplier
+seq r1 found1 multiplier
+and r0 r0 r1
+seq r1 found2 multiplier
+and r0 r0 r1
+seq r1 found3 multiplier
+and r0 r0 r1
+bnez r0 vend
+#error, infinite loop
+s db Setting -1
+yield
+yield
+jr -2
+vend:
+sb FLIPFLOP Mode 0 #To furnace
+s vendor RequestHash ingredient0
+yield
+yield
+yield
+s vendor RequestHash ingredient1
+yield
+yield
+yield
+s vendor RequestHash ingredient2
+yield
+yield
+yield
+s vendor RequestHash ingredient3
+yield
+yield
+yield
+sub multiplier multiplier 1
+bgtz multiplier vend
+sbn 1220484876 HASH("vendLever") Open 0
+j main

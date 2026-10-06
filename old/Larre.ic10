@@ -1,0 +1,54 @@
+define DUMP 12
+alias larre d0
+alias end r15
+alias endMinusOne r14
+alias current r13
+
+move current 0
+
+#init
+#l end db Setting
+#bnez end loop
+s larre Setting -1
+yield
+l r0 larre Idle
+breqz r0 -2
+l end larre PositionX
+sub endMinusOne end 1
+s db Setting end
+loop:
+add current current 1
+brle current end 2
+move current 1
+s larre Setting current
+jal waitIdle
+beq current endMinusOne dump
+beq current end pickup
+j doPlant
+j loop
+doPlant:
+ls r0 larre 255 Class
+bne r0 11 loop
+ls r0 larre 255 Seeding
+beq r0 -1 loop
+harvest:
+s larre Activate 1
+jal waitIdle
+ls r0 larre 255 Occupied
+seqz r0 r0
+ls r1 larre 255 Seeding
+seq r1 r1 -1
+or r0 r0 r1
+beqz r0 harvest
+j ra
+waitIdle:
+yield
+l r0 larre Idle
+l r1 larre PositionX
+seq r1 r1 current
+and r0 r0 r1
+beqz r0 waitIdle
+j ra
+
+dump:
+pickup:

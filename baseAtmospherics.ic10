@@ -1,0 +1,57 @@
+alias solar r15
+alias externalGas r14
+alias internalGas r13
+alias CO2Pump r12
+alias N2Pump r11
+alias O2Pump r10
+alias ratioCO2 r9
+alias ratioN2 r8
+alias ratioO2 r7
+alias pressure r6
+lb r15 1076425094 ReferenceId Maximum
+lbn externalGas -1252983604 HASH("outerGasSensor") ReferenceId Maximum
+lbn internalGas -1252983604 HASH("innerGasSensor") ReferenceId Maximum
+lbn CO2Pump -321403609 HASH("CO2Pump") ReferenceId Maximum
+lbn N2Pump -321403609 HASH("N2Pump") ReferenceId Maximum
+lbn O2Pump -321403609 HASH("O2Pump") ReferenceId Maximum
+
+s CO2Pump Setting 5
+s N2Pump Setting 5
+s O2Pump Setting 5
+s CO2Pump On 0
+s N2Pump On 0
+s O2Pump On 0
+
+define targetCO2 0.1
+define targetN2 0.1
+define targetO2 0.6
+define targetPressure 40
+define maxPressure 60
+loop:
+yield
+l r0 solar Horizontal
+abs r0 r0
+slt r0 r0 90
+sb -1758710260 On r0
+
+l ratioCO2 internalGas RatioCarbonDioxide
+l ratioN2 internalGas RatioNitrogen
+l ratioO2 internalGas RatioOxygen
+l pressure internalGas Pressure
+
+slt r0 ratioCO2 targetCO2
+slt r1 pressure targetPressure
+slt r2 pressure maxPressure
+
+and r0 r0 r2
+s CO2Pump On r0
+
+slt r0 ratioN2 targetN2
+and r0 r0 r2
+s N2Pump On r0
+
+slt r0 ratioO2 targetO2
+or r0 r0 r1
+and r0 r0 r2
+s O2Pump On r0
+j loop

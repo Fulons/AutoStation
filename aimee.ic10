@@ -1,0 +1,96 @@
+alias aimee d0
+alias weatherStation d1
+alias lever d2
+define homeX 1133
+define homeZ 5
+define safeOutsideX 1133
+define safeOutsideZ -9
+define miningLocationX 1133
+define miningLocationZ -19
+define returnChargeRatio 0.3
+alias waypointX r15
+alias waypointZ r14
+alias waypointSet r13
+define maxDistSqr 2500 #50m
+
+s aimee On 1
+sleep 5
+
+aimeeHome:
+move waypointX safeOutsideX
+move waypointZ safeOutsideZ
+jal moveAimee
+move waypointX homeX
+move waypointZ homeZ
+jal moveAimee
+#unload, full charge, no storm
+s aimee Mode 4
+jal waitIdle
+readyToLeave:
+ls r0 aimee 0 ChargeRatio
+sge r0 r0 0.99
+l r1 weatherStation Mode
+seqz r1 r1
+and r0 r0 r1
+l r1 lever Open
+and r0 r0 r1
+beqz r0 readyToLeave
+move waypointX safeOutsideX
+move waypointZ safeOutsideZ
+jal moveAimee
+move waypointX miningLocationX
+move waypointZ miningLocationZ
+jal moveAimee
+#Until charge is low, storm incomming, or if lever is off
+mine:
+s aimee Mode 3
+jal waitIdle
+ls r0 aimee 0 ChargeRatio
+slt r0 r0 returnChargeRatio
+l r1 weatherStation Mode
+snez r1 r1
+or r0 r0 r1
+l r1 aimee Mode
+seq r1 r1 6
+or r0 r0 r1
+l r1 lever Open
+seqz r1 r1
+or r0 r0 r1
+move r4 r0
+#If moving behind base or too far away
+l r2 aimee PositionX
+l r3 aimee PositionZ
+sgt r1 r3 safeOutsideZ
+or r0 r0 r1
+sub r2 r2 miningLocationX
+sub r3 r3 miningLocationZ
+mul r2 r2 r2
+mul r3 r3 r3
+add r2 r2 r3
+sgt r2 r1 maxDistSqr
+or r0 r0 r2
+beqz r0 mine #All good continue mining
+bnez r4 aimeeHome
+move waypointX miningLocationX
+move waypointZ miningLocationZ
+jal moveAimee
+j mine
+
+waitIdle:
+yield
+l r0 aimee PositionY
+s aimee TargetY r0
+l r0 aimee Mode
+seqz r1 r0
+seq r0 r0 6
+or r0 r0 r1
+beqz r0 waitIdle
+j ra
+
+moveAimee:
+l r0 aimee PositionY
+s aimee TargetX waypointX
+s aimee TargetY r0
+s aimee TargetZ waypointZ
+s aimee Mode 2
+j waitIdle

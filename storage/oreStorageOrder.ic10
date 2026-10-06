@@ -1,0 +1,60 @@
+alias reciever r15
+alias location r14
+alias hash r13
+alias count r12
+alias oreStorage r10
+
+define LocationFurnace 0
+define oreStorageSize 5
+
+lb reciever -693235651 ReferenceId Maximum
+lbn oreStorage 2037291645 HASH("oreStorage") ReferenceId Maximum
+
+s reciever Setting 0
+s db Setting 0
+sb 163728359 Setting 0
+sb 163728359 SettingOutput 0
+
+main:
+yield
+l r0 reciever Setting
+beqz r0 main
+and location r0 $FF
+srl count r0 8
+and count count $FF
+sra hash r0 16
+l r5 oreStorage Setting
+
+move r3 0
+findLoop:
+bge r3 r5 notFound
+add r0 r3 3
+get r0 oreStorage r0 #Memory ReferenceId
+add r1 r3 2
+get r1 oreStorage r1 #Silo ReferenceId
+add r3 r3 oreStorageSize
+
+l r0 r0 Setting #hash
+bne r0 hash findLoop #Hash not matching
+
+l r2 r1 Quantity #Stack count
+blt r2 count tooFew #Not enough in stock
+
+s r1 Open 1
+yield
+s r1 Open 0
+yield
+sub count count 1
+brgtz count -5
+s r1 Open 0
+s r1 ClearMemory 1
+j done
+
+
+notFound:
+tooFew:
+s reciever Setting -1
+j main
+done:
+s reciever Setting 0
+j main

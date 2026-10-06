@@ -1,0 +1,47 @@
+define BoxHash -1976947556
+
+alias dish r15
+lbn dish 439026183 HASH("Dish") ReferenceId Maximum
+
+move sp 0
+push HASH("0")
+push HASH("1")
+push HASH("2")
+push HASH("3")
+push HASH("4")
+push HASH("5")
+push HASH("6")
+push HASH("7")
+push HASH("8")
+push HASH("9")
+
+main:
+yield
+clrd dish
+sll r0 1 8
+or r0 r0 TraderInstruction.WriteTraderData
+put dish 0 r0
+sll r0 5 8 #WRITE_INDEX
+sll r1 30 16 #WRITE_COUNT
+or r0 r0 r1
+or r0 r0 TraderInstruction.WriteTraderSellData
+put dish 4 r0
+yield
+
+display:
+move r8 5
+move r7 0
+displayLoop:
+bge r7 3 main
+get r0 dish r8
+add r8 r8 1
+and r1 r0 $FF
+beq r1 12 displayLoop
+srl r1 r0 16
+sll r1 r1 22
+sra r1 r1 22
+#beq r1 BoxHash displayLoop
+get r0 db r7
+sbn -851746783 r0 Setting r1
+add r7 r7 1
+j displayLoop

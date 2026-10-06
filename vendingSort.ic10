@@ -1,0 +1,39 @@
+alias vendSlot r13
+alias vending r14
+alias stackSize r15
+lb vending -443130773 ReferenceId Maximum
+
+sortVending:
+
+
+findUnstacked:
+move sp 0
+findUnstackedLoop:
+move vendSlot 2
+ls r0 vending vendSlot Quantity
+breq r0 500 3
+ls r0 vending vendSlot PrefabHash
+push r0
+add r0 r0 1
+ble vendSlot 101 findUnstackedLoop
+move stackSize sp
+add stackSize stackSize 1
+findDuplicates:
+pop r0
+pop r1
+beq r1 r0 stacking
+beqz sp nextDupe
+jr -3
+stacking:
+move r2 10
+s vending RequestHash r1
+yield
+sub r2 r2 1
+brnez r2 -3
+nextDupe:
+sub stackSize stackSize 1
+blt stackSize 2 done
+move sp stackSize
+j findDuplicates
+
+done:

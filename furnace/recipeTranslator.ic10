@@ -1,0 +1,127 @@
+push 0 #Copper 0
+push 2 #Gold 2
+push 4 #Iron 4
+push 6 #Silicon 6
+push 8 #Silver 8
+push 10 #Constantan 10
+push 13 #Electrum 13
+push 16 #Invar 16
+push 19 #Solder 19
+push 22 #Steel 22
+push 27 #Astroloy 27
+push 32 #Hastelloy 32
+push 37 #Inconel 37
+push 42 #Stellite 42
+push 47 #Waspaloy 47
+move r15 sp #Offset
+push -404336834 #Copper 0
+push -707307845 #Copper ore 1
+push 226410516 #Gold 2
+push -1348105509 #Gold ore 3
+push -1301215609 #Iron 4
+push 1758427767 #Iron ore 5
+push -290196476 #Silicon 6
+push 1103972403 #Silicon ore 7
+push -929742000 #Silver 8
+push -916518678 #Silver ore 9
+push 1058547521 #Constantan 10
+push -707307845 #Copper ore 11
+push 1830218956 #Nickel ore 12
+push 502280180 #Electrum 13
+push -1348105509 #Gold ore 14
+push -916518678 #Silver ore 15
+push -297990285 #Invar 16
+push 1758427767 #Iron ore 17
+push 1830218956 #Nickel ore 18
+push -82508479 #Solder 19
+push 1758427767 #Iron ore 20
+push -190236170 #Lead ore 21
+push -654790771 #Steel 22
+push 1758427767 #Iron ore 23
+push 1758427767 #Iron ore 24
+push 1758427767 #Iron ore 25
+push 1724793494 #Coal ore 26
+push 412924554 #Astroloy 27
+push -707307845 #Copper ore 28
+push -654790771 #Steel 29
+push -654790771 #Steel 30
+push -983091249 #Cobalt ore 31
+push 1579842814 #Hastelloy 32
+push -916518678 #Silver ore 33
+push -916518678 #Silver ore 34
+push 1830218956 #Nickel ore 35
+push -983091249 #Cobalt ore 36
+push -787796599 #Inconel 37
+push -1348105509 #Gold ore 38
+push -1348105509 #Gold ore 39
+push -654790771 #Steel 40
+push 1830218956 #Nickel ore 41
+push -1897868623 #Stellite 42
+push -916518678 #Silver ore 43
+push 1103972403 #Silicon ore 44
+push 1103972403 #Silicon ore 45
+push -983091249 #Cobalt ore 46
+push 156348098 #Waspaloy 47
+push -916518678 #Silver ore 48
+push 1830218956 #Nickel ore 49
+push -190236170 #Lead ore 50
+push -190236170 #Lead ore 51
+alias transmitter d0
+selectIngot:
+yield
+lbn r0 554524804 HASH("selectDial") Setting Maximum
+get r1 db r0 #Get product pointer
+add r1 r1 r15 #Apply pointer offset
+get r14 db r1 #Get product hash
+move r11 0 #ingredient1
+move r12 0 #ingredient2
+move r13 0 #ingredient3
+add r1 r1 1
+get r10 db r1 #ingredient0
+bge r0 9 superAlloys#Super alloys and steel
+bge r0 5 alloys #Alloys
+order:
+sbn -851746783 HASH("product") Setting r14 #Set memory of hash displays
+sbn -851746783 HASH("ingredient0") Setting r10 #ingredient0
+sbn -851746783 HASH("ingredient1") Setting r11 #ingredient1
+sbn -851746783 HASH("ingredient2") Setting r12 #ingredient2
+sbn -851746783 HASH("ingredient3") Setting r13 #ingredient3
+lbn r0 1220484876 HASH("orderLever") Open Maximum
+beqz r0 selectIngot #If lever not open just display ingredients
+lbn r9 554524804 HASH("multiplierDial") Setting Maximum
+beqz r9 selectIngot #Multiplier is 0, return
+sbn 1220484876 HASH("orderLever") Open 0
+move r2 r10 #ingredient0
+jal waitTransmitt
+beqz r11 selectIngot #ingredient1
+move r2 r11 #ingredient1
+jal waitTransmitt
+beqz r12 selectIngot #ingredient2
+move r2 r12 #ingredient2
+jal waitTransmitt
+beqz r13 selectIngot #ingredient3
+move r2 r13 #ingredient3
+jal waitTransmitt
+j selectIngot
+superAlloys:
+add r1 r1 1
+get r11 db r1 #ingredient1
+add r1 r1 1
+get r12 db r1 #ingredient2
+add r1 r1 1
+get r13 db r1 #ingredient3
+j order
+alloys:
+add r1 r1 1
+get r11 db r1 #ingredient1
+j order
+waitTransmitt:
+beq r2 -654790771 ra #If steel dont request
+sll r3 r9 8 #Multiplier sets stack count
+sll r2 r2 16 #Hash
+or r2 r2 r3
+s transmitter Setting r2
+yield
+l r0 transmitter Setting
+bnez r0 waitTransmitt
+j ra

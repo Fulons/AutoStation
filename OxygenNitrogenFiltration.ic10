@@ -1,0 +1,92 @@
+define minPercentFilter 30
+define maxPressureOutput 30000 #30mPa
+define minRatioGas 0.25
+define smallO2Filter -721824748
+define mediumO2Filter -1067319543
+define largeO2Filter -1217998945
+define smallN2Filter 632853248
+define mediumN2Filter -632657357
+define largeN2Filter -1387439451
+define O2Memory HASH("O2Memory")
+define N2Memory HASH("N2Memory")
+alias setting r15
+alias filterType r14
+alias type r13
+alias memory r12
+define O2TYPE 0
+define N2TYPE 1
+move type -1
+
+initFilters:
+s db Setting 50 #Default setting
+ls filterType db 0 PrefabHash
+seq r0 filterType smallO2Filter
+seq r1 filterType mediumO2Filter
+or r0 r0 r1
+seq r1 filterType largeO2Filter
+or r0 r0 r1
+breqz r0 4
+move type O2TYPE
+lbn memory -851746783 O2Memory ReferenceId Maximum
+j main
+seq r0 filterType smallN2Filter
+seq r1 filterType mediumN2Filter
+or r0 r0 r1
+seq r1 filterType largeN2Filter
+or r0 r0 r1
+breqz r0 4
+move type N2TYPE
+lbn memory -851746783 N2Memory ReferenceId Maximum
+j main
+j error
+
+main:
+yield
+move setting 0
+#Check clean input
+l r0 db RatioCarbonDioxideInput
+seqz r0 r0
+l r1 db RatioLiquidCarbonDioxideInput
+seqz r1 r1
+and r0 r0 r1
+l r1 db RatioPollutantInput
+seqz r1 r1
+and r0 r0 r1
+l r1 db RatioLiquidPollutantInput
+seqz r1 r1
+and r0 r0 r1
+#Check ratio of filtered gas on input and output
+beq type O2TYPE O2
+beq type N2TYPE N2
+j error
+setMode:
+sgt r1 r1 minRatioGas
+slt r2 r2 maxPressureOutput
+and r0 r0 r1
+and r0 r0 r2
+s db Mode r0
+add setting setting r0
+#Check filters
+ls r0 db 0 Quantity
+ls r1 db 1 Quantity
+add r0 r0 r1
+sge r0 r0 minPercentFilter
+bnez r0 main
+#If filter is low set filter hash in settings
+sll r0 filterType 8
+or setting setting r0
+s memory Setting setting
+j main
+
+O2:
+l r1 db RatioOxygenInput
+l r2 db PressureOutput
+j setMode
+N2:
+l r1 db RatioNitrogenInput
+l r2 db PressureOutput
+j setMode
+
+error:
+s db On 0
+j initFilters

@@ -1,0 +1,52 @@
+push -666742878
+push -1301215609 #Iron ingot
+push -1172078909
+push -404336834 #Copper ingot
+push -409226641
+push 226410516 #Gold ingot
+push -1195893171
+push -290196476 #Silicon ingot
+push 687283565
+push -929742000 #Silver ingot
+push -2002530571
+push 2134647745 #Lead ingot
+push 556601662
+push -1406385572 #Nickel ingot
+push 1331613335
+push -654790771 #Steel ingot
+push -1206542381
+push -82508479 #Solder ingot
+push -626453759
+push -297990285 #Invar ingot
+push 478264742
+push 502280180 #Electrum ingot
+push 1731241392
+push 1058547521 #Constantan ingot
+push 1787814293
+push 156348098 #Waspaloy ingot
+push -500544800
+push -1897868623 #Stellite ingot
+push -586072179
+push -787796599 #Inconel ingot
+push 2019732679
+push 1579842814 #Hastelloy ingot
+push -1493155787
+push 412924554 #Astroloy ingot
+s db Setting sp
+
+alias reagantTranslater r5
+lbn reagantTranslater 2037291645 HASH("ReagantTranslater") ReferenceId Maximum #Compact housing
+lbn reagantTranslater -128473777 HASH("ReagantTranslater") ReferenceId Maximum #Housing
+lookup:
+move r7 0
+l r6 reagantTranslater Setting
+lookupLoop:
+get r9 reagantTranslater r7 #Reagant
+add r7 r7 1
+get r8 reagantTranslater r7 #Ingot
+add r7 r7 1
+beq r7 r0 ra #Found
+breq r6 r7 2 #Not found
+j lookupLoop #Loop
+move r8 0
+j ra

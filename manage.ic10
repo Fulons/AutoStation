@@ -1,0 +1,89 @@
+SorterUnloaderReturns LogicSorter
+Unloader
+
+
+sorting class/sortingclass
+Belt 16/5
+Drill 17/2
+Ingots
+
+0-Volatile
+1-Water
+2-Nitrice
+3-Oxite
+SorterIce0/1/2
+IceCrusher0/1/2/3
+
+SorterIngot
+
+VendingBuffer
+
+define volatileCrusher HASH("IceCrusher0")
+define waterCrusher HASH("IceCrusher1")
+define nitriceCrusher HASH("IceCrusher2")
+define oxiteCrusher HASH("IceCrusher3")
+
+define sorterVolatile HASH("SorterIce0")
+define sorterWater HASH("SorterIce1")
+define sorterNitrice HASH("SorterIce2")
+define sorterUnloaderIce HASH("SorterUnloaderIce")
+
+define LSorter 873418029
+define Crusher 443849486
+
+sb LSorter On 1
+sb Crusher On 1
+
+sll r0 1253102035 8 #Volatile ice
+or r0 r0 1
+lbn r1 LSorter sorterVolatile ReferenceId Maximum
+put r1 0 r0 
+
+sll r0 1217489948 8 #Water ice
+or r0 r0 1
+lbn r1 LSorter sorterWater ReferenceId Maximum
+put r1 0 r0 
+
+sll r0 -1499471529 8 #Nitrice
+or r0 r0 1
+lbn r1 LSorter sorterNitrice ReferenceId Maximum
+put r1 0 r0 
+
+sll r0 10 16 #Sorting class ices
+or r0 r0 3 #0-Equal or 3 sorting class compare
+lbn r1 LSorter sorterUnloaderIce ReferenceId Maximum
+s r1 Mode 0
+put r1 0 r0
+
+
+
+
+
+alias vendingBuffer r15
+alias larre r14
+alias currentVend r13
+move currentVend 2
+lbn vendingBuffer 19591354 HASH("VendingBuffer") ReferenceId Maximum
+lbn larre -1555459562 HASH("Larre") ReferenceId Maximum
+s larre Setting -1
+main:
+yield
+jal vendNext
+jal handleLarre
+j main
+
+vendNext:
+ls r0 vendingBuffer currentVend PrefabHash
+s vendingBuffer RequestHash r0
+add currentVend currentVend 1
+brle currentVend 11 ra
+move currentVend 2
+j ra
+
+handleLarre:
+l r0 larre Idle
+beqz r0 ra #Not idle return
+l r0 larre Setting
+s db Setting r0
+s larre Setting 0
+j ra

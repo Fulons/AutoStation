@@ -1,0 +1,95 @@
+alias sorter d1
+ #get r0 sorter 0
+ #put sorter 0 r1
+
+alias furnace d0
+
+alias fuelMixTemp r15
+alias dilutantHeatValue r14
+alias furnaceTemp r13
+alias furnacePressure r12
+alias targetTemp r11
+alias targetPressure r10
+alias currentOrder r9 #IO
+#Volatile registers r0-3
+
+define NO_MESSAGE 0
+
+move currentOrder 0
+move sp 0
+COMread:
+lbn r0 -693235651 HASH("FurnaceRX") Setting
+beqz r0 ra
+push r0
+j ra
+COMwrite:
+sbn -693235651 HASH("FurnaceTX") Setting currentOrder
+j ra
+
+main:
+jal COMread
+
+getCurrentOrder:
+move r1 sp
+move sp currentOrder
+peek r0
+move sp r1
+#TempMin 400K
+#TempMax 2000K
+#TempInc 100K
+#16 values, 4 bits, #F<<0  15
+#r0 = TempIn
+and r1 r0 15
+mul r1 r1 100
+add r1 r1 400
+#PressureMin 100kpa
+#PressureMax 50,000mpa
+#PressureInc 50kpa
+#500 values, 10 bits, #3FF<<4 1023
+#r1 = PressureIn
+srl r2 r0 4
+and r2 r2 1023
+mul r2 r2 50
+add r2 r2 100
+#Furnace order, flags: Recieved-WaitingForResources-Producing-Complete
+#|ORDERNUM           |SystemID |(flags)  |UNUSED                 |PRESSURE     |TEMP
+#|uint16             |uint8    |8        |18                     |uint10       |uint4
+#|#### #### #### ####|#### ####|#### ####|#### #### #### ####  ##|## ####  #### ####
+Read:
+CheckOutput:
+l r0 furnace RecipeHash
+sne r0 r0 -1641500434 #ReagentMix
+beqz r0 ra
+s furnace Open 1
+yield
+yield
+s furnace Open 0
+j ra
+
+calculateInput:
+sub r0 targetTemp furnaceTemp#Fuel ratio
+mul r0 dilutantHeatValue r0
+sub r1 20.633 dilutantHeatValue
+mul r1 furnaceTemp r1
+sub r2 78.172 dilutantHeatValue
+mul r2 targetTemp r2
+sub r1 r1 r2
+add r1 r1 187817
+div r0 r0 r1 #Fuel ratio
+mul r1 targetPressure fuelMixTemp#Fuel pressure
+mul r2 r0 1.9
+add r2 1 r0
+mul r2 targetPressure r2
+div r1 r1 r2#Fuel pressure
+j ra
+
+alias PA d0
+alias mixer d1
+s mixer On 0
+s PA On 1
+loop:
+l r0 PA Pressure
+slt r0 r0 4000 #less than 4kpa
+s mixer On r0
+yield
+j loop

@@ -1,0 +1,62 @@
+alias intakeVent r15
+alias atmosGasSensor r14
+alias indoorGasSensor r13
+alias indoorInPump r12
+alias indoorOutPump r11
+
+lbn intakeVent 938836756 HASH("HarvestVent") ReferenceId Maximum
+lbn atmosGasSensor -1252983604 HASH("AtmosGasSensor") ReferenceId Maximum
+lbn indoorGasSensor -1252983604 HASH("IndoorGasSensor") ReferenceId Maximum
+lbn indoorInPump -321403609 HASH("InPump") ReferenceId Maximum
+lbn indoorOutPump -321403609 HASH("OutPump") ReferenceId Maximum
+
+define HarvestTemp 266
+define TargetCollectionPressure 6000
+define MinIndoorPressure 70
+define MaxIndoorPressure 80
+define TargetIndoorTemperature 302
+
+s intakeVent Mode 1 #Inward
+
+main:
+yield
+lb r0 322782515 Quantity Maximum
+sgtz r0 r0
+sb 555215790 On r0
+l r0 atmosGasSensor Temperature
+sgt r0 r0 273
+sb -1758710260 On r0
+#Harvest
+l r0 atmosGasSensor Temperature
+slt r0 r0 HarvestTemp
+l r1 intakeVent PressureOutput
+slt r1 r1 TargetCollectionPressure
+and r0 r0 r1
+s intakeVent On r0
+not r3 r0
+brnez r3 2
+s indoorInPump On 0
+#Input
+yield
+l r0 intakeVent RatioLiquidPollutantOutput
+slez r0 r0
+l r1 intakeVent RatioPollutantOutput
+slez r1 r1
+and r0 r0 r1
+    #Under MIN, temp || Pressure
+l r1 indoorGasSensor Temperature
+sgt r1 r1 TargetIndoorTemperature
+l r2 indoorGasSensor Pressure
+slt r2 r2 MinIndoorPressure
+or r1 r1 r2
+and r0 r0 r1
+and r0 r0 r3
+s indoorInPump On r0
+#Over MAX
+l r0 indoorGasSensor Pressure
+sgt r0 r0 MaxIndoorPressure
+s indoorOutPump On r0
+#breqz r0 3
+#yield
+#s indoorOutPump On 0
+j main

@@ -12,10 +12,10 @@ define structureLEDSmall -815193061
 define structureLED 1944485013
 define structureMemory -851746783
 
-define GMModeRequestAmount      999999991        #Request Amount of Hash
-define GMModeRequestWithdraw    999999992      #Requested Withdraw Hash
-define GMModeStopWithdraw       999999993         #
-define GMModeWithdrawnAmount    999999994      #Request Withdraw Amount
+define GMModeRequestAmount 999999991
+define GMModeRequestWithdraw 999999992
+define GMModeStopWithdraw 999999993
+define GMModeWithdrawnAmount 999999994
 
 #INIT
 move exporting 0

@@ -1,0 +1,115 @@
+alias furnace r15
+alias furnaceInAnalyzer r14
+alias coolAnalyzer r13
+alias fuelAnalyzer r12
+alias pumpCool r11
+alias pumpFuel r10
+alias inputDial r9
+alias statusLED r8
+alias mode r7
+alias inTemp r6
+alias inPressure r5
+
+lb furnace 545937711 ReferenceId Maximum
+lbn furnaceInAnalyzer 435685051 HASH("FurnaceInAnalyzer") ReferenceId Maximum
+lbn coolAnalyzer 435685051 HASH("CoolAnalyzer") ReferenceId Maximum
+lbn fuelAnalyzer 435685051 HASH("FuelAnalyzer") ReferenceId Maximum
+lbn pumpCool 1310794736 HASH("PumpCool") ReferenceId Maximum
+lbn pumpFuel 1310794736 HASH("PumpFuel") ReferenceId Maximum
+lbn inputDial 554524804 HASH("InputDial") ReferenceId Maximum
+lbn statusLED 1944485013 HASH("StatusLED") ReferenceId Maximum
+
+s furnaceInAnalyzer On 1
+s coolAnalyzer On 1
+s fuelAnalyzer On 1
+
+define modeHeat 0
+define modeNone 1
+define modeCool 2
+define inLiters 290
+define LPpKM 8314.46261815324
+define desiredInPressure 5000000 #Pa
+
+move mode -1 #Invalid mode on boot ensures check for flush
+
+s statusLED On 1
+s inputDial Mode 2
+s inputDial Setting modeNone
+s pumpCool Setting 0
+s pumpFuel Setting 0
+s pumpCool On 1
+s pumpFuel On 1
+loop:
+yield
+jal updateMode
+jal setLED
+j loop
+
+updateMode:
+move r0 mode
+l mode inputDial Setting
+bne r0 mode flush
+s db Setting mode
+seq r2 mode modeCool
+seq r3 mode modeHeat
+bne mode modeNone setInput
+s pumpCool Setting 0
+s pumpFuel Setting 0
+j ra
+setInput:
+breqz r3 4 #if cool
+l inTemp coolAnalyzer Temperature
+l inPressure coolAnalyzer Pressure
+jr 3 #else
+l inTemp fuelAnalyzer Temperature
+l inPressure fuelAnalyzer Pressure
+mul inPressure inPressure 1000 #KPa to Pa
+mul r0 desiredInPressure inLiters
+mul r1 LPpKM inTemp
+div r0 r0 r1 #Moles needed to fill input to desired pressure
+l r1 furnaceInAnalyzer TotalMoles
+sub r0 r0 r1 #Needed moles assuming same temperature
+mul r0 r0 LPpKM
+mul r0 r0 inTemp
+div r0 r0 inPressure
+sgt r1 r0 0.1
+mul r0 r0 r1 #Set 0 if equal or below 0.1
+div r0 r0 1.5 #Fill in 1.5 ticks
+l r1 furnace SettingInput
+select r2 r2 r0 0
+select r3 r3 r0 0
+min r2 r2 r1
+min r3 r3 r1
+s pumpCool Setting r2
+s pumpFuel Setting r3
+j ra
+
+flush:
+s statusLED Color 6 #Flusing: white
+l r0 furnaceInAnalyzer RatioCarbonDioxide
+brnez r0 4 #If no CO2
+s pumpFuel Mode 1
+s pumpFuel Setting 100
+jr 3 #else
+s pumpCool Mode 1
+s pumpCool Setting 100
+yield
+l r0 furnaceInAnalyzer Pressure
+brnez r0 -2
+s pumpFuel Mode 0
+s pumpCool Mode 0
+s pumpFuel Setting 0
+s pumpCool Setting 0
+j ra
+
+setLED:
+add r0 mode 1
+mul r0 r0 2
+sub r0 r0 1
+jr r0
+s statusLED Color 4 #0 Heat: red
+j ra
+s statusLED Color 2 #1 None: green
+j ra
+s statusLED Color 0 #2 Cool: blue
+j ra

@@ -1,0 +1,24 @@
+alias pump d0
+alias valve d1
+alias sensor d2
+
+
+
+
+main:
+yield
+l r0 db TemperatureInput
+slt r0 r0 283 #~10C
+s db Mode r0
+seqz r0 r0 #inputTemp > ~10C
+l r1 sensor Temperature
+slt r1 r1 278 #outsideTemp < ~5C
+and r0 r0 r1
+l r1 db PressureInput
+sgt r1 r1 30 #inputPressure > 30kpa
+and r0 r0 r1
+s valve On r0
+bnez r0 2
+sleep 5 #Leave pump on for 5 seconds to empty radiators
+s pump On r0
+j main

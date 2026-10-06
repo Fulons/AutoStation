@@ -1,0 +1,114 @@
+alias larre d0
+alias index r15
+alias task r14
+alias emptyTrays r13
+define TASKSeed 0
+define TASKHarvest 1
+define dumpIndex 14
+define seedIndex 13
+#setup
+s larre On 1
+move sp 0
+brge sp 64 3
+push -1
+jr -2
+move task TASKHarvest
+move emptyTrays 0
+move index 0
+s larre Setting index
+jal wait
+main:
+add index index 1
+s larre Setting index # Move next
+jal wait
+l r0 larre Setting
+bne r0 index home #Looped - set counter, reset index
+beq index dumpIndex main #Skip dump
+beq index seedIndex pickup #Check if more seeds should be sown
+jal register #Register the slot into stack
+ls r0 larre 255 Occupied
+seqz r0 r0
+seq r1 task TASKSeed
+and r0 r0 r1 #Empty and TASKSeed
+bnez r0 seed
+beq task TASKSeed main
+ls r0 larre 255 Seeding
+bne r0 1 main
+harvestLoop:
+s larre Activate 1
+jal wait
+ls r0 larre 255 Occupied
+seqz r0 r0
+ls r1 larre 255 Seeding
+seq r1 r1 -1
+or r0 r0 r1
+beqz r0 harvestLoop
+jal register
+j dump
+seed:
+s larre Activate 1#seed
+jal wait
+ls r0 larre 0 Occupied
+ls r1 larre 1 Occupied
+sub emptyTrays emptyTrays 1 #Temporary update
+or r0 r0 r1 #Has more seeds
+snez r1 emptyTrays #Has empty trays
+and r1 r0 r1 #Seeds and empty trays
+bnez r1 main #Continue seeding
+move task TASKHarvest #Start harvesting
+move r3 r0
+jal register
+bnez r3 dump #Dump extra seeds
+j main
+dump:
+s larre Setting dumpIndex
+jal wait
+dumpLoop:
+s larre Activate 1
+jal wait
+sb -850484480 Open 0
+ls r0 larre 0 Occupied
+ls r1 larre 1 Occupied
+or r0 r0 r1
+bnez r0 dumpLoop
+j main
+pickup:
+snez r0 emptyTrays #Tray available for seed
+ls r1 larre 255 Occupied #Seed available in output
+and r0 r0 r1
+beqz r0 main #No seeds or no tray available
+move task TASKSeed
+s larre Activate 1 #Pickup seeds
+jal wait
+j main
+home:
+jal count
+s db Setting emptyTrays
+move index 0
+j main
+wait:
+yield
+l r0 larre Idle
+beqz r0 wait
+j ra
+register:
+move r0 index
+move r1 1
+sgt r2 index dumpIndex
+add r1 r1 r2
+sgt r2 index seedIndex
+add r1 r1 r2
+sub r0 r0 r1
+move sp r0
+ls r0 larre 255 OccupantHash
+push r0
+j ra
+count:
+move emptyTrays 0
+move sp 1
+peek r0
+beq r0 -1 ra
+seqz r1 r0
+add emptyTrays emptyTrays r1
+add sp sp 1
+jr -5

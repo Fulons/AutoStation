@@ -1,0 +1,86 @@
+alias printIC r15
+alias dbg0 r14
+alias dbg1 r13
+alias dbg2 r12
+alias dbg3 r11
+alias EP r10
+alias reagentTranslater r9
+alias dbgbtn r8
+alias vending r7
+alias vendStacker r6
+
+lbn reagentTranslater 2037291645 HASH("ReagentTranslater") ReferenceId Maximum
+lbn printIC 2037291645 HASH("PrintIC") ReferenceId Maximum
+lbn dbg0 -53151617 HASH("dbg0") ReferenceId Maximum
+lbn dbg1 -53151617 HASH("dbg1") ReferenceId Maximum
+lbn dbg2 -53151617 HASH("dbg2") ReferenceId Maximum
+lbn dbg3 -53151617 HASH("dbg3") ReferenceId Maximum
+lbn EP 1307165496 HASH("EP") ReferenceId Maximum
+
+lb vending -443130773 ReferenceId Maximum
+lbn dbgbtn 491845673 HASH("dbgbtn") ReferenceId Maximum
+lbn vendStacker -2020231820 HASH("VS") ReferenceId Maximum
+s vendStacker Mode 1
+s vendStacker ClearMemory 1
+
+s vending ClearMemory 1
+yield
+vendTest:
+l r0 dbgbtn Activate
+beqz r0 vendTest
+move r1 0
+s dbgbtn Activate 0
+yield
+#s vending RequestHash -654790771 #vend steel
+s vending RequestHash -2038384332 #vend vendor
+vendTestLoop:
+l r0 vending Error
+bgtz r0 doneError
+l r0 vending ExportCount
+bgtz r0 doneExportCount
+ls r0 vending 1 Quantity #1/2
+bgtz r0 doneQuantity
+l r0 vending RequestHash
+bnez r0 doneHash
+yield
+add r1 r1 1
+j vendTestLoop
+
+doneHash:
+s dbg0 Setting 1
+s dbg1 Setting r1
+j done
+doneError:
+add r0 r0 3000
+s dbg0 Setting r0
+s dbg1 Setting r1
+j done
+doneExportCount:
+add r0 r0 2000
+s dbg0 Setting r0
+s dbg1 Setting r1
+j done
+doneQuantity:
+add r0 r0 1000
+s dbg0 Setting r0
+s dbg1 Setting r1
+j done
+
+done:
+s vendStacker Activate 1
+j done
+
+loop:
+yield
+get r0 EP 54
+sll r0 r0 6 #Shift up into sign bit
+sra r0 r0 22 #Reagent hash
+s dbg0 Setting r0
+get r0 printIC 1
+s dbg1 Setting r0
+get r0 printIC 2
+s dbg2 Setting r0
+get r0 printIC 3
+s dbg3 Setting r0
+
+j loop

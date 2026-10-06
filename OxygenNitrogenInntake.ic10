@@ -1,0 +1,19 @@
+alias vent r15
+alias tank r14
+alias sensor r13
+define maxTemperature 252
+define maxPressure 20000 #20mPa
+
+lb vent 938836756 ReferenceId Maximum
+lb tank 272136332 ReferenceId Maximum
+lb sensor -1252983604 ReferenceId Maximum
+
+main:
+l r0 sensor Temperature
+slt r0 r0 maxTemperature
+l r1 tank Pressure
+slt r1 r1 maxPressure
+and r0 r0 r1
+s vent On r0
+sleep 5
+j main

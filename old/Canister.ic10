@@ -1,0 +1,77 @@
+define MIN_PRESSURE 9499
+define MAX_PRESSURE 9501
+#Find gas type
+alias type r15
+lb r0 -348054045 RatioCarbonDioxideOutput 2
+breqz r0 2
+move type 1
+lb r0 -348054045 RatioNitrogenOutput 2
+breqz r0 2
+move type 3
+lb r0 -348054045 RatioNitrousOxideOutput 2
+breqz r0 2
+move type 5
+lb r0 -348054045 RatioOxygenOutput 2
+breqz r0 2
+move type 7
+lb r0 -348054045 RatioPollutantOutput 2
+breqz r0 2
+move type 9
+lb r0 -348054045 RatioVolatilesOutput 2
+breqz r0 2
+move type 11
+#Default device settings
+sbn -1149857558 HASH("BPR") Setting MAX_PRESSURE
+sbn -1149857558 HASH("BPR") On 0
+sbn 209854039 HASH("PR") Setting MIN_PRESSURE
+sbn 209854039 HASH("PR") On 0
+sbn 1310794736 HASH("Flush") Setting 100
+sbn 1310794736 HASH("Flush") On 0
+
+main:
+yield
+lbs r0 1632165346 0 Occupied 2
+bnez r0 pressuriseCanister
+j main
+
+pressuriseCanister:
+jal readGasRatio
+bltal r0 1 flush
+sbn -1149857558 HASH("BPR") On 1
+sbn 209854039 HASH("PR") On 1
+pressureCheck:
+lb r0 -348054045 PressureOutput 2
+sgt r1 r0 MIN_PRESSURE
+breqz r1 2
+sbn 209854039 HASH("PR") On 0
+slt r2 r0 MAX_PRESSURE
+and r0 r1 r2
+beqz r0 pressureCheck
+sbn -1149857558 HASH("BPR") On 0
+sbn 209854039 HASH("PR") On 0
+j main
+
+flush:
+sbn -1149857558 HASH("BPR") On 0
+sbn 209854039 HASH("PR") On 0
+sbn 1310794736 HASH("Flush") On 1
+yield
+lb r0 -348054045 PressureOutput 2
+brnez r0 -2
+sbn 1310794736 HASH("Flush") On 0
+j ra
+
+readGasRatio:
+jr type
+lb r0 -348054045 RatioCarbonDioxideOutput 2
+j ra
+lb r0 -348054045 RatioNitrogenOutput 2
+j ra
+lb r0 -348054045 RatioNitrousOxideOutput 2
+j ra
+lb r0 -348054045 RatioOxygenOutput 2
+j ra
+lb r0 -348054045 RatioPollutantOutput 2
+j ra
+lb r0 -348054045 RatioVolatilesOutput 2
+j ra

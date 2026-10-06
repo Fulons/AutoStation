@@ -1,0 +1,16 @@
+#Generic order
+#|ORDERNUM
+#|uint16
+#|                   |SystemID
+#|                   |uint8
+#|                   |         |Recieved-WaitingForResources-Producing
+#|                   |         |8(flags)
+#|                   |         |         |UNUSED
+#|                   |         |         |18
+#|                   |         |         |                       |PRESSURE
+#|                   |         |         |                       |10
+#|                   |         |         |                       |             |TEMP
+#|                   |         |         |                       |             |4
+#|#### #### #### ####|#### ####|#### ####|#### #### #### ####  ##|## ####  #### ####
+
+ControllerRecieveOrder:

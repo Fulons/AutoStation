@@ -1,0 +1,43 @@
+alias furnace r15
+alias inDial r14
+alias outDial r13
+alias inLED r12
+alias outLED r11
+alias exportLever r10
+
+lb furnace 545937711 ReferenceId Maximum
+lbn inDial 554524804 HASH("InDial") ReferenceId Maximum
+lbn outDial 554524804 HASH("OutDial") ReferenceId Maximum
+lbn exportLever 1220484876 HASH("ExportLever") ReferenceId Maximum
+lbn inLED -815193061 HASH("inLED") ReferenceId Maximum
+lbn outLED -815193061 HASH("outLED") ReferenceId Maximum
+s inDial Mode 20
+s outDial Mode 20
+
+s inDial Setting 0
+s outDial Setting 0
+s exportLever Open 0
+
+main:
+yield
+l r0 inDial Setting #0->9 = 0->9, 10 = 0, 11->20 = 10->100
+brlt r0 10 3
+sub r0 r0 10
+mul r0 r0 10
+s inLED Setting r0
+s furnace SettingInput r0
+l r1 furnace Combustion
+seqz r1 r1 #r1 = r1 ==0
+sgtz r0 r0 #r0 = r0 > 0
+and r0 r0 r1 #r0 = r0 && r1
+breqz r0 2
+s furnace Activate 1 #ignite if input is on and no combustion yet
+l r0 outDial Setting 
+brlt r0 10 3
+sub r0 r0 10
+mul r0 r0 10
+s outLED Setting r0
+s furnace SettingOutput r0
+l r0 exportLever Open
+s furnace Open r0
+j main

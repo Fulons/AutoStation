@@ -1,0 +1,54 @@
+alias vending r15
+alias reagentTranslater r14
+
+alias ingot r13
+alias ingotSp r12
+alias maxIngot r11
+alias smallestIngotCount r10
+alias smallestIngotHash r9
+alias currentIngotCount r8
+alias countLED r7
+
+define LEAD 2134647745
+define NICKEL -1406385572
+
+move smallestIngotHash 0
+move smallestIngotCount $7FFFFFFFFFFFFFFF
+
+lbn reagentTranslater 2037291645 HASH("ReagentTranslater") ReferenceId Maximum #Compact housing
+lbn countLED -815193061 HASH("CountLED") ReferenceId Maximum
+lb vending -443130773 ReferenceId Maximum
+l maxIngot reagentTranslater Setting
+
+loop:
+s db Setting smallestIngotHash
+s countLED Setting smallestIngotCount
+move ingotSp -1
+move smallestIngotHash 0
+move smallestIngotCount $7FFFFFFFFFFFFFFF
+ingotLoop:
+yield
+add ingotSp ingotSp 2
+bge ingotSp maxIngot loop
+get ingot reagentTranslater ingotSp
+beq ingot LEAD ingotLoop #Ignore lead
+beq ingot NICKEL ingotLoop #Ignore nickel
+jal findIngotCount
+bge currentIngotCount smallestIngotCount ingotLoop
+move smallestIngotHash ingot
+move smallestIngotCount currentIngotCount
+j ingotLoop
+
+
+findIngotCount:
+move r2 1 #2-101
+move currentIngotCount 0
+findIngotCountLoop:
+add r2 r2 1
+bgt r2 101 ra
+ls r0 vending r2 PrefabHash
+ls r1 vending r2 Quantity
+bne r0 ingot findIngotCountLoop
+add currentIngotCount currentIngotCount r1
+bgt currentIngotCount smallestIngotCount ra #Skip after count has exceeded smallest
+j findIngotCountLoop

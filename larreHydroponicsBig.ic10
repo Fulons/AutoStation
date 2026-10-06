@@ -1,0 +1,127 @@
+alias larre d0
+alias harvestIndex r15
+alias emptyTrays r14
+move emptyTrays 0
+move harvestIndex 0
+s larre Setting -1 #Move to max index
+jal waitIdle
+l r13 larre Setting #Store max index
+s larre Setting harvestIndex #move home
+jal waitIdle
+move sp 0
+push -2 #Seed/undefined(home?) location
+main:
+add harvestIndex harvestIndex 1
+s larre Setting harvestIndex # Move next
+jal waitIdle
+l r0 larre Setting
+bne r0 harvestIndex home #Looped - set counter, reset index
+l r0 larre TargetPrefabHash
+beq r0 1464854517 doHarvest #hydroponicsTray
+beq r0 1957571043 doSeedPickup #chuteExportBin
+push -1 #Dump location, chuteImportBin
+j main
+doSeedPickup:
+push -2 #Seed/undefined(home?) location
+ls r0 larre 255 Occupied
+beqz r0 main #No seeds available
+beqz emptyTrays main #No trays available
+s larre Activate 1 #Pickup seeds
+jal waitIdle
+l r0 larre Setting
+move r10 r0 #findFrom
+move r12 0 #FindID empty tray
+move r11 gotoSeed #findGoto
+j find
+doHarvest:
+ls r0 larre 255 Occupied
+push r0 #Register occupied status
+beqz r0 main #Nothing here jump to main
+ls r0 larre 255 Seeding 
+bne r0 1 main #Not ready to harvest
+harvestLoop:
+s larre Activate 1
+jal waitIdle
+ls r0 larre 255 Occupied
+seqz r2 r0 #Is empty
+ls r1 larre 255 Seeding
+seq r1 r1 -1 #Is not seeding
+or r1 r2 r1
+beqz r1 harvestLoop
+pop r1
+push r0 #Update occupied
+add emptyTrays emptyTrays r2
+move r10 sp #findFrom
+move r12 -1 #findID dump
+move r11 gotoDump #findGoto
+j find
+gotoSeed:
+s larre Setting r9 #foundIndex
+jal waitIdle
+s larre Activate 1 #seed
+jal waitIdle
+poke r9 1  #Update occupied
+sub emptyTrays emptyTrays 1 #Update number of empty trays
+ls r0 larre 0 Occupied
+ls r1 larre 1 Occupied
+or r0 r0 r1 #Has more seeds
+sgtz r1 emptyTrays
+and r1 r0 r1
+breqz r1 5 #Has more seeds and empty trays, continue
+move r10 r9 #findFrom, foundIndex
+move r12 0 #findID empty tray
+move r11 gotoSeed #findGoto
+j find
+breqz r0 5
+move r10 r9 #findFrom, foundIndex
+move r12 -1 #findID dump
+move r11 gotoDump #findGoto
+j find
+j main #No more seeds, continue with harvest
+find:
+move r0 r10 #findFrom
+move r1 r10 #findFrom
+findLoop:
+add r0 r0 1
+brle r0 r13 2 #if passed home, maxIndex
+move r0 0
+sub r1 r1 1
+brge r1 0 2 #if passed home
+move r1 r13 #maxIndex
+get r2 db r0
+seq r2 r2 r12 #findID
+move r9 r0 #foundIndex
+bnez r2 r11 #findGoto
+get r3 db r1
+seq r3 r3 r12 #findID
+move r9 r1 #foundIndex
+bnez r3 r11 #findGoto
+j findLoop
+gotoDump:
+s larre Setting r9 #foundIndex
+jal waitIdle
+s larre Activate 1
+jal waitIdle
+sb -850484480 Open 0
+s larre Activate 1
+jal waitIdle
+j main
+home:
+jal count
+s db Setting emptyTrays
+move harvestIndex 0
+move sp 0
+push -2 #Seed/undefined(home?) location
+j main
+count:
+move emptyTrays 0
+pop r0
+seqz r0 r0 #0 means empty tray
+add emptyTrays emptyTrays r0
+beqz sp ra #Done counting
+jr -4 #next
+waitIdle:
+yield
+l r0 larre Idle
+beqz r0 waitIdle
+j ra

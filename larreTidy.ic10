@@ -1,0 +1,91 @@
+alias larre r15
+alias index r14
+alias heldHash r13
+alias currentSlot r12
+alias raStore r11
+alias stacker r10
+define LARREPICKUP 4
+define LARRESTACK 5
+lbn larre -1555459562 HASH("Larre") ReferenceId Maximum
+lbn stacker -2020231820 HASH("larreStacker") ReferenceId Maximum
+s larre TargetSlotIndex 0
+s db Setting 0
+l index larre Setting
+handleLarre:
+s larre Setting LARREPICKUP
+jal waitIdle
+s stacker Activate 1 #Flush stacker just in case
+ls r1 larre 255 PrefabHash
+s db Setting r1
+beqz r1 handleLarre
+s larre Activate 1
+jal waitIdle
+move index LARREPICKUP
+placeLoop:
+sub index index 1
+s larre Setting index
+jal waitIdle
+beqz index dump #Reached dump station so dump
+move currentSlot -1
+
+storageLoop:
+add currentSlot currentSlot 1
+bgt currentSlot 15 placeLoop
+s larre TargetSlotIndex currentSlot
+s db Setting index
+ls r0 larre 255 PrefabHash
+beqal r0 r1 checkStack #Found equal item check if they can be stacked
+bnez r0 storageLoop #Occupied, check next
+s larre Activate 1 #Else place item
+jal waitIdle
+s larre TargetSlotIndex 0 #reset target slot
+j handleLarre
+
+dump:
+s larre TargetSlotIndex 0
+s larre Activate 1
+jal waitIdle
+j handleLarre
+
+checkStack:
+move raStore ra
+ls r2 larre 255 Quantity
+ls r3 larre 255 MaxQuantity
+beq r2 r3 raStore #Already max stack return
+ls r4 larre 0 MaxQuantity
+ls r5 larre 0 Quantity
+bne r4 r5 stackItems #Not holding max stack, do not swap
+s larre Activate 1 #Swap
+jal waitIdle
+j raStore #Continue to drop of
+
+#ls r1 larre 0 PrefabHash
+#beq
+
+stackItems:
+l r1 larre Setting
+l r3 larre TargetSlotIndex
+add r2 r2 r5 #Find total count
+s stacker Setting r2 #Set stacker
+s larre Setting LARRESTACK #move to drop off
+jal waitIdle
+s larre TargetSlotIndex 0
+s larre Activate 1 #Drop off
+jal waitIdle
+s larre Setting r1 #Move back
+jal waitIdle
+s larre TargetSlotIndex r3
+s larre Activate 1 #Pick up
+jal waitIdle
+s larre Setting LARRESTACK #move to drop off
+jal waitIdle
+s larre TargetSlotIndex 0
+s larre Activate 1 #Drop off
+jal waitIdle
+j handleLarre #Restart
+
+waitIdle:
+yield
+l r0 larre Idle
+beqz r0 waitIdle
+j ra

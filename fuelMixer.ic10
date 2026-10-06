@@ -1,0 +1,32 @@
+alias H2Analyzer d0
+alias O2Analyzer d1
+alias FuelTank d2
+alias FuelMixer d3
+
+define TargetFuelPressure 20000
+s FuelMixer Setting 66.666666666
+s H2Analyzer On 1
+s O2Analyzer On 1
+s db Setting 0
+
+loop:
+yield
+l r0 H2Analyzer RatioVolatiles
+bne r0 1 error
+jal fillFuel
+j loop
+
+fillFuel:
+l r0 FuelTank Pressure
+slt r0 r0 TargetFuelPressure
+l r1 O2Analyzer Temperature
+l r2 H2Analyzer Temperature
+sub r1 r1 r2
+abs r1 r1
+sle r1 r1 0.5
+and r0 r0 r1
+s FuelMixer On r0
+j ra
+
+error:
+s db Setting -1

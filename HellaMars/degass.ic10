@@ -1,0 +1,52 @@
+# Stationeers Fully Automated Ore Degassing System
+# Controls a Furnace inside an insulated "Hot Box" enclosure
+#
+# Device Pin Assignments:
+# d0: Furnace
+# d1: Input Chute (Volume / Stack Chute)
+# d2: Output Chute (Unloader / Lever)
+# d3: Hot Box Gas Valve (Volume Pump or Digital Valve)
+# d4: [Optional] Display / LED Alert
+#
+# Ensure your Hot Box frame is sealed and filled with hot gas (>100C).
+
+define TEMP_THRESHOLD 373   # 100 degrees Celsius in Kelvin
+define MIN_PRESS 10        # Minimum furnace vacuum clear pressure (kPa)
+
+init:
+  s d0 On 1                 # Ensure furnace is turned on
+  s d1 On 1                 # Ensure input chute is active
+  s d2 On 1                 # Ensure output unloader is active
+
+main:
+  yield
+  
+  # Check if ore is present inside the furnace
+  l r0 d0 ImportQuantity
+  ble r0 0 check_clear      # If no ore, check if we need to purge residual gas
+
+  # Ore is present, monitor degassing conditions
+  l r1 d0 Temperature
+  blt r1 TEMP_THRESHOLD heat_up # If too cold, open hot box heat valve
+  
+  # Temperature is hot enough to degas; wait briefly for gas release
+  s d3 Setting 0            # Close heat valve to prevent overheating
+  sleep 2                   # Give it 2 seconds to release trapped gases
+  
+  # Eject the degassed ore
+  s d0 Open 1
+  sleep 1
+  s d0 Open 0               # Cycle the lever
+  j main
+
+heat_up:
+  s d3 Setting 100          # Open volume pump to draw heat into furnace jacket/box
+  j main
+
+check_clear:
+  s d3 Setting 0            # Close heat valve since no ore is processing
+  l r2 d0 Pressure
+  blt r2 MIN_PRESS main     # If vacuumed out, loop back
+  
+  # Optional active pump-out handling can be added here
+  j main

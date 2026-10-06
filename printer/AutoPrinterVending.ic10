@@ -1,0 +1,102 @@
+alias ingot r7
+alias reagent r8
+alias reagentTranslater r9
+alias ingotPointer r10
+alias vendStacker r11
+alias vending r12
+alias sorter r13
+alias printer r14
+alias stackSize r15
+s db Setting 0
+clr db
+lbn reagentTranslater 2037291645 HASH("ReagentTranslater") ReferenceId Maximum #Compact housing
+lbn vendStacker -2020231820 HASH("VS") ReferenceId Maximum
+s vendStacker Mode 1
+s vendStacker ClearMemory 1
+lb vending -443130773 ReferenceId Maximum
+s vending On 1
+lbn r0 336213101 HASH("AL") ReferenceId Maximum
+move r1 HASH("AL")
+jal setMachine
+lbn r0 1307165496 HASH("EP") ReferenceId Maximum
+move r1 HASH("EP")
+jal setMachine
+lbn r0 -1888248335 HASH("PB") ReferenceId Maximum
+move r1 HASH("PB")
+jal setMachine
+lbn r0 -465741100 HASH("TM") ReferenceId Maximum
+move r1 HASH("TM")
+jal setMachine
+move stackSize sp
+loop:
+brnez sp 3
+move sp stackSize
+s vendStacker Activate 1
+pop sorter
+pop printer
+get r0 printer 54
+and r1 r0 $FF #OPCode
+bne r1 9 loop #No more requested resources
+srl r1 r0 8
+and r1 r1 $FF #Count
+sll r0 r0 6 #Shift up into sign bit
+sra r0 r0 22 #Reagent hash
+jal lookup
+beq ingot -1 missing #Could not translate reagent
+s vendStacker Setting r1
+put sorter 0 262 #Limit execution 1
+sll r2 ingot 8
+or r2 r2 1
+put sorter 1 r2 #Hash
+put sorter 2 262 #Limit execution 1
+sll r2 r1 16
+or r2 r2 5
+put sorter 3 r2 #Limit count
+move r2 0
+vendLoop:
+s vending RequestHash ingot #Vend
+yield
+yield
+ls r0 vendStacker 2 PrefabHash
+breq r0 ingot 3
+s vendStacker Activate 1
+jr -5
+ls r0 vendStacker 2 Quantity  
+add r2 r2 1
+bgt r2 10 missing
+blt r0 r1 vendLoop
+s vendStacker Output 1
+move r1 ingot
+yield
+get r0 printer 54
+sll r0 r0 6 #Shift up into sign bit
+sra r0 r0 22 #Reagent hash
+jal lookup
+breq r1 ingot -5 #Loop until resource has reached machine
+j loop
+missing:
+s db Setting ingot
+yield
+j loop
+setMachine:
+push r0
+lbn r0 873418029 r1 ReferenceId Maximum #Sorter
+put r0 0 6 #limit 0
+put r0 1 1 #hash 0
+s r0 Mode 0 #All
+push r0
+j ra
+
+lookup:
+move r6 0
+l r5 reagentTranslater Setting
+lookupLoop:
+get reagent reagentTranslater r6 #Reagent
+add r6 r6 1
+get ingot reagentTranslater r6 #Ingot
+add r6 r6 1
+beq reagent r0 ra #Found
+blt r6 r5 lookupLoop
+move ingot -1 #Not found
+j ra
+

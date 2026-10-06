@@ -1,0 +1,79 @@
+define DHflushLever 1220484876
+define DHstacker -2020231820
+define DHmemMaxStack -851746783
+define DHledCount -815193061
+define DHsilo 1155865682
+define DHledDBG -53151617
+alias logicSorter d0
+alias hash r15
+alias maxStackSize r14
+alias count r13
+init:
+sb DHledDBG Setting 1
+s logicSorter On 1
+s logicSorter Mode 0 #All
+sb DHsilo On 1
+sb DHstacker On 1
+sb DHledCount On 1
+sb DHledCount Mode 0 #Normal number display
+l hash db Setting
+beqz hash wait #If failed to load
+lb count DHledCount Setting 2
+lb maxStackSize DHmemMaxStack Setting 2    #Memory
+j main
+wait:
+sb DHledDBG Setting 2
+yield
+move count 0
+clr logicSorter
+sb DHstacker ClearMemory 1
+yield #Wait loop
+ls r0 logicSorter 0 Occupied #Chute Input
+breqz r0 -2 #Wait loop
+ls hash logicSorter 0 OccupantHash #Chute Input
+ls maxStackSize logicSorter 0 MaxQuantity #Chute Input
+jal save
+setDevices:
+move r0 hash
+sll r0 r0 8
+or r0 r0 SorterInstruction.FilterPrefabHashEquals
+put logicSorter 0 r0
+sb DHstacker Setting maxStackSize
+j main
+save:
+sb DHledDBG Setting 3
+s db Setting hash
+sb DHledCount Setting count #LedCount
+sb DHmemMaxStack Setting maxStackSize #Memory
+sb DHstacker Setting maxStackSize
+j ra
+flush:
+lb r0 DHflushLever Open 2 #Lever open?
+beqz r0 ra
+sb DHledDBG Setting 9999
+sb DHflushLever Lock 1 #Lever lock
+clr logicSorter
+sb DHsilo Open 1 #Export On
+sb DHstacker Activate 1
+sleep 5 #Wait empty loop
+lb r0 DHsilo Quantity 1
+brnez r0 -2 #Wait empty loop
+sb DHsilo Open 0 #Export Off
+sb DHflushLever Lock 0 #Lever unlock
+sb DHflushLever Open 0 #Lever off
+sb DHledCount Setting 0
+s db Setting 0
+j init
+counter:
+lb r0 DHsilo Quantity 2
+mul r0 r0 maxStackSize
+lbs r1 DHstacker 2 Quantity Maximum
+add count r0 r1
+j ra
+main:
+yield
+sb DHledDBG Setting 10
+jal flush
+jal counter
+jal save
+j main

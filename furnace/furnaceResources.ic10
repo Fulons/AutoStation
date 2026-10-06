@@ -1,0 +1,93 @@
+define FLIPFLOP 163728359
+alias vendDial r15
+alias vendor r14
+alias hash r13
+alias stackSize r12
+alias display r11
+alias inputCount r10
+alias exportCount r9
+lbn vendDial 554524804 HASH("VendDial") ReferenceId Maximum
+lbn hash -851746783 HASH("memVendHash") ReferenceId Maximum
+lbn display -815193061 HASH("displayCount") ReferenceId Maximum
+lbn vendor 19591354 HASH("VendorFurnace") ReferenceId Maximum
+move inputCount 0
+move exportCount 0
+move stackSize 0
+sb FLIPFLOP Setting 0
+sb FLIPFLOP SettingOutput 0
+sb FLIPFLOP On 1
+sb FLIPFLOP Mode 1
+s hash Setting 0
+s display Setting 0
+s vendDial Mode 0
+s vendDial Setting 0
+clr db
+main:
+yield
+jal checkVend
+jal fixDial
+jal checkDial
+j main
+fixDial:
+div r0 stackSize 2
+sub r0 r0 1
+s vendDial Mode r0
+l r1 vendDial Setting
+bge r0 r1 ra
+s vendDial Setting r0
+j ra
+checkDial:
+seqz r0 stackSize
+l r1 hash Setting
+snez r1 r1
+and r0 r0 r1
+bnez r0 reset
+blez stackSize ra
+l r0 vendDial Setting
+mul r0 r0 2
+get r1 db r0
+s hash Setting r1
+add r0 r0 1
+get r1 db r0
+s display Setting r1
+j ra
+reset:
+s hash Setting 0
+s display Setting 0
+j ra
+checkVend:
+l r0 vendor ImportCount
+sne r1 r0 inputCount
+move inputCount r0
+l r2 vendor ExportCount
+sne r3 r2 exportCount
+move exportCount r2
+or r1 r1 r3
+beqz r1 ra  #No new items and no items removed, return
+yield
+clr db
+move stackSize 0
+move r5 1 #2-11
+checkVendLoop:
+add r5 r5 1
+bgt r5 11 ra #Every slot checked return
+ls r0 vendor r5 PrefabHash
+ls r1 vendor r5 Quantity
+beqz r1 checkVendLoop #Empty slot, check next
+move sp stackSize
+j addStack #Found item, add to stack
+addStack:
+beqz sp addNew #No entry found, add new entry
+pop r2 #Count
+pop r3 #Hash
+bne r0 r3 addStack
+add r1 r1 r2 #Found entry, update count and store
+push r0 #Hash
+push r1 #Count
+j checkVendLoop # Updated entry, return
+addNew:
+move sp stackSize #New entry
+push r0 #Hash
+push r1 #Count
+move stackSize sp #Update stack size
+j checkVendLoop
