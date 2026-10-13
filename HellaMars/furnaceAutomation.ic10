@@ -1,0 +1,115 @@
+define PKp 0.05 #Pressure, proportional term
+define PKi 0.01 #Pressure, integral term
+define TKp 0.005 #Temperature, proportional term
+define TKi 0.001 #Temperature, integral term    
+define MAXPUMP 10
+define MINPUMP -10
+alias targetPressure r15
+alias targetTemperature r14
+alias currentPressure r13
+alias currentTemperature r12
+alias accIPressure r11
+alias accITemperature r10
+alias fuelPump r9
+alias coolPump r8
+lbn fuelPump 1310794736 HASH("fuelPump") ReferenceId Maximum
+lbn coolPump 1310794736 HASH("coolPump") ReferenceId Maximum
+sb 545937711 SettingInput 100 #Always on, controlled by external pumps
+reset:
+sb 545937711 SettingOutput 0
+move accIPressure 0
+move accITemperature 0
+move targetPressure 0
+move targetTemperature 0
+s coolPump Setting 0
+s fuelPump Setting 0
+s coolPump On 1
+s fuelPump On 1
+sb 545937711 On 1
+wait:
+yield
+lb currentPressure 545937711 Pressure Maximum
+sgt r0 currentPressure 50000
+mul r0 r0 10
+sb 545937711 SettingOutput r0
+lbn r0 -851746783 HASH("pressure") Setting Maximum
+lbn r1 -851746783 HASH("temperature") Setting Maximum
+beqz r0 wait
+move targetPressure r0
+move targetTemperature r1
+lb currentTemperature 545937711 Temperature Maximum
+slt r0 currentTemperature 575 #Autoignition temp (675 for alcohol)
+snan r1 currentTemperature #Can be NaN if vacuum?
+or r0 r0 r1
+beqz r0 main
+#"Safe" ignite
+s fuelPump Setting 1
+sleep 2
+sb 545937711 Activate 1
+s fuelPump Setting 0
+main:
+lbn r0 -851746783 HASH("pressure") Setting Maximum
+lbn r1 -851746783 HASH("temperature") Setting Maximum
+bne r0 targetPressure reset
+bne r1 targetTemperature reset
+yield
+lb currentPressure 545937711 Pressure Maximum       #Read Pressure
+lb currentTemperature 545937711 Temperature Maximum #Read Temp
+sub r0 currentPressure targetPressure #Pressure error
+sub r1 currentTemperature targetTemperature #Temperature error
+mul r2 r0 PKp # Pressure, Proportional Term (P)
+mul r3 r1 TKp # Temp, Proportional Term (P)
+add r0 accIPressure r0 #Pressure, accumulate
+add r1 accITemperature r1 #Temp, accumulate
+mul r4 r0 PKi #Pressure, Integral term (I)
+mul r5 r1 TKi #Temp, Integral term (I)
+
+add r2 r2 r4 #Pressure P + I
+add r3 r3 r5 #Temp  P + I
+div r2 r2 10 #Pressure, dampening
+div r3 r3 10 #Temp, dampening
+
+brgt r2 MAXPUMP 3
+brlt r2 MINPUMP 2
+move accIPressure r0 #Accumulate if not clamped
+brgt r3 MAXPUMP 3
+brlt r3 MINPUMP 2
+move accITemperature r1 #Accumulate if not clamped
+
+min r0 r2 MAXPUMP #Clamp pressure
+max r0 r0 MINPUMP #Clamp pressure
+min r1 r3 MAXPUMP #Clamp temp
+max r1 r1 MINPUMP #Clamp temp
+
+brgtz r0 3 #Pressure > 0
+bgtz r1 THPL
+j TLPL
+bgtz r1 THPH
+j TLPH
+
+TLPL: #Temp low & Pressure low
+abs r0 r0
+abs r1 r1
+max r0 r0 r1
+s coolPump Setting 0
+s fuelPump Setting r0
+sb 545937711 SettingOutput 0
+j main
+THPL: #Temp high & pressure low
+abs r0 r0 
+max r0 r0 r1
+s fuelPump Setting 0
+s coolPump Setting r0
+sb 545937711 SettingOutput 0
+j main
+TLPH: #Temp low & pressure high
+abs r1 r1
+s fuelPump Setting r1
+s coolPump Setting 0
+sb 545937711 SettingOutput r0
+j main
+THPH: #Temp high & pressure high
+s fuelPump Setting 0
+s coolPump Setting r1
+sb 545937711 SettingOutput r0
+j main
