@@ -1,0 +1,82 @@
+define water 0
+define oxite 1
+define volatiles 2
+define nitrice 3
+define temp 278 #5C
+#water-oxygen nitrogen-methane hydrogen- NOS
+clr db
+push HASH("0")
+push HASH("1")
+push HASH("2")
+push HASH("3")
+
+alias crusher r15
+alias vendor r14
+alias sorter r13
+alias ID r12
+alias nameHash r11
+
+setup:
+move ID water
+jal getDevice
+s crusher Setting temp
+s vendor On 1
+s sorter On 1
+sll r0 1217489948 8
+or r0 r0 SorterInstruction.FilterPrefabHashEquals
+put sorter 0 r0
+
+move ID oxite
+jal getDevice
+s crusher Setting temp
+s vendor On 1
+s sorter On 1
+sll r0 -1805394113 8
+or r0 r0 SorterInstruction.FilterPrefabHashEquals
+put sorter 0 r0
+
+move ID volatiles
+jal getDevice
+s crusher Setting temp
+s vendor On 1
+s sorter On 1
+sll r0 1253102035 8
+or r0 r0 SorterInstruction.FilterPrefabHashEquals
+put sorter 0 r0
+
+move ID nitrice
+jal getDevice
+s crusher Setting temp
+s vendor On 1
+s sorter On 1
+sll r0 -1499471529 8
+or r0 r0 SorterInstruction.FilterPrefabHashEquals
+put sorter 0 r0
+
+move ID water
+loop:
+brle ID nitrice 3
+move ID water
+yield
+jal getDevice
+add ID ID 1
+l r0 crusher Activate
+ls r1 crusher 0 Occupied
+or r0 r0 r1
+bnez r0 loop #crusher working
+l r0 vendor Quantity
+sgtz r0 r0
+s crusher On r0
+beqz r0 loop
+l r0 vendor TargetSlotIndex
+s vendor DispenseSlot r0
+yield
+yield
+j loop
+
+getDevice:
+get nameHash db ID
+lbn crusher 443849486 nameHash ReferenceId Maximum
+lbn vendor 19591354 nameHash ReferenceId Maximum
+lbn sorter 873418029 nameHash ReferenceId Maximum
+j ra
