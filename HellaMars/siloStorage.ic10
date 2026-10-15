@@ -1,0 +1,123 @@
+alias silo r15
+alias stackerIn r14
+alias stackerOut r13
+alias sorterOut r12
+alias sorterIn r11
+alias hash r10
+alias stackSize r9
+alias stackCount r8
+alias partialStackSize r7
+alias storedAmount r6
+alias requestedAmount r5
+alias stackSizeNew r4
+alias rara r3
+clr db
+push HASH("0")
+push HASH("1")
+define maxStack 1
+sb 873418029 On 1 #Sorter in
+sb -1009150565 On 1 #SorterOut
+sb -2020231820 On 1 #StackerIn
+sb -2020231820 Mode 0 #StackerIn
+sb 1585641623 On 1 #StackerOut
+sb 1585641623 Mode 1 #StackerOut logic mode
+sb 1155865682 On 1 #Silo
+sb -1009150565 Mode 2 #SorterOut, externalSorter mode
+main:
+yield
+lbn r0 -693235651 HASH("hash") Setting Maximum
+lbn requestedAmount -693235651 HASH("amount") Setting Maximum
+bnezal r0 export
+lbns r0 -1009150565 HASH("externalSorter") 0 OccupantHash Maximum
+lbns stackSizeNew -1009150565 HASH("externalSorter") 0 MaxQuantity Maximum
+beqz r0 main
+jal findResource #Find requested resource
+beqzal hash allocate #Not found, allocate
+breq hash -1 3 #Refuse if out of free silos
+sbn -1009150565 HASH("externalSorter") Output 0 #Accept resource
+j main
+sbn -1009150565 HASH("externalSorter") Output 1 #Reject resource
+j main
+
+export:
+beq r0 1 ra
+move rara ra
+jal findResource
+move ra rara
+beqz hash error
+beq hash -1 error
+blt storedAmount requestedAmount error
+sbn -693235651 HASH("hash") Setting 0
+div stackCount requestedAmount stackSize
+floor stackCount stackCount
+mod partialStackSize requestedAmount stackSize
+s silo Open 1 #Silo.Open()
+yield
+yield
+exportStackLoop:
+beqz stackCount partialStack #while(stackCount != 0)
+s stackerOut Output 1 #stackerOut.output()
+yield
+l r0 sorterOut Output 
+brne r0 -1 -2
+ls r0 sorterOut 0 Quantity #r0 = input.Quantity
+beqz r0 exportStackLoop
+seq r1 r0 stackSize
+sne r0 r0 stackSize #r0 = r0 != stackSize
+s db Setting r0
+s sorterOut Output r0
+sub stackCount stackCount r1 #stackCount -= r0
+j exportStackLoop
+partialStack:
+beqz partialStackSize empty
+s stackerOut Setting partialStackSize
+partialStackLoop:
+s stackerOut Output 1
+yield
+ls r0 sorterOut 0 Quantity #Import slot
+beqz r0 partialStackLoop
+breq r0 partialStackSize 3
+s sorterOut Output 1 #sorter.reject()
+j partialStackLoop
+s sorterOut Output 0 #sorter.accept()
+s stackerOut Setting stackSize
+move r2 0
+empty:
+s silo Open 0
+yield
+s sorterOut Output 1  #sorter.reject()
+s stackerOut Activate 1
+add r2 r2 1
+ble r2 6 empty #Empty sorter 6 times to flush the buffer
+j ra
+error:
+sbn -693235651 HASH("hash") Setting 1
+j ra
+allocate:
+sbn -851746783 r1 Setting r0 #Set hash
+srl r0 r0 8
+or r0 r0 SorterInstruction.FilterPrefabHashEquals
+put sorterIn 0 r0 #Set sorter to accept hash
+s stackerIn Setting stackSizeNew #Stack size
+s stackerOut Setting stackSizeNew
+j ra
+findResource:
+move r2 0
+findLoop:
+move hash -1 #Indicates stack overflow error
+bgt r2 maxStack ra
+get r1 db r2 #Get name hash
+lbn hash -851746783 r1 Setting Maximum #Get resource hash
+beqz hash ra #Indicates next free silo
+add r2 r2 1 #Add stack index
+bne hash r0 findLoop #If not found -> next
+getDevice:
+lbn silo 1155865682 r1 ReferenceId Maximum
+lbn stackerIn -2020231820 r1 ReferenceId Maximum
+lbn stackerOut 1585641623 r1 ReferenceId Maximum
+lbn sorterIn 873418029 r1 ReferenceId Maximum
+lbn sorterOut -1009150565 r1 ReferenceId Maximum
+l stackSize stackerIn Setting
+l storedAmount silo Quantity
+mul storedAmount storedAmount stackSize
+j ra

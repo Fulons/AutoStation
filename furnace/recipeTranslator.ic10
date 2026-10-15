@@ -78,7 +78,7 @@ move r12 0 #ingredient2
 move r13 0 #ingredient3
 add r1 r1 1
 get r10 db r1 #ingredient0
-bge r0 9 superAlloys#Super alloys and steel
+bge r0 9 superAlloys #Super alloys and steel
 bge r0 5 alloys #Alloys
 order:
 sbn -851746783 HASH("product") Setting r14 #Set memory of hash displays
