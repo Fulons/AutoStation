@@ -1,0 +1,97 @@
+alias vendor r15
+alias stackerOut r13
+alias sorterOut r12
+alias hash r10
+lb vendor -443130773 ReferenceId Maximum
+lb stackerOut -2020231820 ReferenceId Maximum
+lb sorterOut -1009150565 ReferenceId Maximum
+alias stackCount r9
+alias partialStackSize r8
+alias storedAmount r7
+alias requestedAmount r6
+alias rara r5
+alias stackSize r4
+
+define maxStack 101
+s vendor On 1 #Vendor
+s sorterOut On 1 #SorterOut
+s sorterOut Mode 2 #SorterOut.LogicMode()
+s stackerOut On 1 #StackerOut
+s stackerOut Mode 1 #stackerOut.LogicMode()
+s stackerOut Setting 500
+
+main:
+yield
+lbn r0 -693235651 HASH("hash") Setting Maximum
+lbn requestedAmount -693235651 HASH("amount") Setting Maximum
+bnezal r0 export
+j main
+
+export:
+beq r0 1 ra
+move rara ra
+jal findResource
+move ra rara
+bgt requestedAmount storedAmount error
+move hash r0
+move r0 0
+exportVendingLoop:
+s vendor RequestHash hash
+yield
+add r0 r0 1
+ble r0 10 exportVendingLoop #Try empty for 10 ticks
+
+div stackCount requestedAmount stackSize
+floor stackCount stackCount #stackCount = (int)(requestedAmount / stackSize)
+mod partialStackSize requestedAmount stackSize #partialStackSize = requestedAmount % stackSize
+exportStackLoop:
+beqz stackCount partialStack #while(stackCount != 0)
+s stackerOut Output 1 #stacker.output()
+yield
+l r0 sorterOut Output #r1 = Import.Output
+brne r0 -1 -2
+ls r0 sorterOut 0 Quantity #r0 = Import.Quantity
+beqz r0 exportStackLoop #if(!r0) continue
+seq r0 r0 stackSize 
+s sorterOut Output r0 #output.accept()
+sub stackCount stackCount r0 #--stackCount
+j exportStackLoop #continue
+partialStack:
+beqz partialStackSize empty #if(partialStackSize != 0)
+s stackerOut Setting partialStackSize
+partialStackLoop:
+s stackerOut Output 1 #stacker.output()
+yield
+ls r0 sorterOut 0 Quantity #r0 = sorterOut.importQuantity
+beqz r0 partialStackLoop
+breq r0 partialStackSize 3
+s sorterOut Output 0 #sorterOut.refuse()
+j partialStackLoop #continue;
+s sorterOut Output 1 # else sorterOut.accept()
+s stackerOut Setting 500
+move r2 0
+empty:
+yield
+s sorterOut Output 0 #sorterOut.refuse()
+s stackerOut Activate 1 #stackerOut.clear()
+add r2 r2 1
+blt r2 6 empty #Empty sorter 6 times to flush the buffer
+j ra
+
+error:
+sbn -693235651 HASH("hash") Setting 1
+j main
+
+findResource:
+move r2 1
+move storedAmount 0
+findLoop:
+move hash -1 #Indicates stack overflow error
+add r2 r2 1 #Add stack index
+bgt r2 maxStack ra
+ls hash vendor r2 PrefabHash  #Get resource hash
+bne hash r0 findLoop #If not found -> next
+ls stackSize vendor r2 MaxQuantity
+ls r1 vendor r2 Quantity 
+add storedAmount storedAmount r1
+j findLoop

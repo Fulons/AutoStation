@@ -7,7 +7,7 @@ define amountName HASH("CUingotAmount")
 
 #sbn logicTransmitterHASH amountName Setting 50
 #sbn logicTransmitterHASH hashName Setting 1758427767 #Iron ingot
-sbn logicTransmitterHASH amountName Setting 4
+sbn logicTransmitterHASH amountName Setting 3
 sbn logicTransmitterHASH hashName Setting 1025254665 #Chutes basic
 s db Setting 0
 yield
