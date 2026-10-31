@@ -1,3 +1,5 @@
+clr db
+move sp 0
 push -666742878
 push -1301215609 #Iron ingot
 push -1172078909
@@ -32,21 +34,40 @@ push 2019732679
 push 1579842814 #Hastelloy ingot
 push -1493155787
 push 412924554 #Astroloy ingot
-s db Setting sp
 
-alias reagantTranslater r5
+alias reagantTranslater r15
 lbn reagantTranslater 2037291645 HASH("ReagantTranslater") ReferenceId Maximum #Compact housing
-lbn reagantTranslater -128473777 HASH("ReagantTranslater") ReferenceId Maximum #Housing
+#lbn reagantTranslater -128473777 HASH("ReagantTranslater") ReferenceId Maximum #Housing
+
+alias requestReagent r14
+alias currentReagent r13
+alias currentIngot r12
+alias index r11
+alias prevReagent r10
+move prevReagent 0
 lookup:
-move r7 0
-l r6 reagantTranslater Setting
+yield
+l requestReagent reagantTranslater Setting
+sll requestReagent requestReagent 22
+sra requestReagent requestReagent 22 #requestReagent (signed)
+beq requestReagent prevReagent lookup
+move prevReagent requestReagent
+beqz requestReagent lookup
+move index 0
 lookupLoop:
-get r9 reagantTranslater r7 #Reagant
-add r7 r7 1
-get r8 reagantTranslater r7 #Ingot
-add r7 r7 1
-beq r7 r0 ra #Found
-breq r6 r7 2 #Not found
-j lookupLoop #Loop
-move r8 0
-j ra
+bge index sp notFound
+get currentReagent db index #Reagant
+add index index 1
+get currentIngot db index #Ingot
+add index index 1
+bne currentReagent requestReagent lookupLoop #Loop if not found
+s reagantTranslater Setting currentIngot
+move prevReagent currentIngot
+s db Setting 1111
+j lookup
+
+notFound:
+s reagantTranslater Setting 0
+move prevReagent 0
+s db Setting 2000
+j lookup
